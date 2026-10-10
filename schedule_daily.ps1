@@ -9,8 +9,11 @@ $action = New-ScheduledTaskAction -Execute "$folder\run_collect.bat" -WorkingDir
 $trigger = New-ScheduledTaskTrigger -Daily -At 7:00AM
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 30) `
     -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+# Run as you, only while you're logged in, with normal (non-admin) rights.
+$principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" `
+    -LogonType Interactive -RunLevel Limited
 
 Register-ScheduledTask -TaskName "FoodPriceApp Daily Collect" `
     -Description "Collects Kroger grocery prices into Supabase (food-price-app)" `
-    -Action $action -Trigger $trigger -Settings $settings -Force |
+    -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force |
     Select-Object TaskName, State
