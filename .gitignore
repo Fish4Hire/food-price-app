@@ -1,0 +1,20 @@
+# Secrets - never commit
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Cached Kroger token
+.kroger_token.json
+
+# Daily run logs
+logs/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
