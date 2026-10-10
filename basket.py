@@ -11,6 +11,8 @@ Each basket item has:
   exclude  - words that must NOT appear
   unit     - the unit we compare prices in: "gal", "lb", "dozen", "oz" or "fl oz"
   size     - (min, max) package size allowed, in that unit
+  qty      - how much of it a typical weekly basket buys, in that unit
+             (defaults to the size when min and max are equal)
 
 Run it directly to copy the basket into the database and re-link listings
 we've already saved:  python basket.py
@@ -71,7 +73,7 @@ BASKET = [
      "search": "white sandwich bread", "require": ["white", "bread"],
      "exclude": ["crumbs", "flour", "mix", "wheat", "whole grain", "keto", "gluten", "protein",
                  "honey", "seeded"],
-     "unit": "oz", "size": (16, 24)},
+     "unit": "oz", "size": (16, 24), "qty": 20},
     {"slug": "rice-white-2lb", "name": "White rice, long grain, 2 lb", "category": "Bread & grains",
      "search": "long grain white rice", "require": ["rice", "white"],
      "exclude": ["brown", "ready", "cup", "microwav", "seasoned", "minute", "instant", "boil"],
@@ -96,19 +98,19 @@ BASKET = [
      "search": "fresh bananas", "require": ["bananas"],
      "exclude": ["chips", "smoothie", "pepper", "bread", "manzano", "plantain", "baby", "dried",
                  "protein", "trail mix", "red", "burro", "organic", "cake", "frozen"],
-     "unit": "lb", "size": (0.5, 5)},
+     "unit": "lb", "size": (0.5, 5), "qty": 2},
     {"slug": "apples-gala-lb", "name": "Gala apples, per lb", "category": "Produce",
      "search": "gala apples", "require": ["gala", "apple"],
      "exclude": ["juice", "sauce", "chips", "slices", "organic", "mixed"],
-     "unit": "lb", "size": (0.5, 5)},
+     "unit": "lb", "size": (0.5, 5), "qty": 3},
     {"slug": "potatoes-russet-bag", "name": "Russet potatoes, bagged, per lb", "category": "Produce",
      "search": "russet potatoes", "require": ["russet", "potato"],
      "exclude": ["chips", "mashed", "flakes", "fries", "hash", "organic", "microwave", "tray"],
-     "unit": "lb", "size": (3, 10)},
+     "unit": "lb", "size": (3, 10), "qty": 5},
     {"slug": "onions-yellow-lb", "name": "Yellow onions, per lb", "category": "Produce",
      "search": "yellow onions", "require": ["yellow onion"],
      "exclude": ["rings", "powder", "soup", "diced", "chopped", "organic", "julienne", "fresh cut"],
-     "unit": "lb", "size": (0.5, 5)},
+     "unit": "lb", "size": (0.5, 5), "qty": 3},
     {"slug": "carrots-2lb", "name": "Carrots, 2 lb bag", "category": "Produce",
      "search": "carrots 2 lb", "require": ["carrot"],
      "exclude": ["baby", "shredded", "matchstick", "juice", "cake", "chips", "rainbow", "organic"],
@@ -119,23 +121,23 @@ BASKET = [
      "search": "boneless skinless chicken breast", "require": ["chicken", "breast", "boneless", "skinless"],
      "exclude": ["frozen", "deli", "sliced", "rotisserie", "tender", "breaded", "thin", "cooked",
                  "grilled", "strips", "organic", "seasoned", "marinated"],
-     "unit": "lb", "size": (0.5, 6)},
+     "unit": "lb", "size": (0.5, 6), "qty": 2},
     {"slug": "ground-beef-80-lb", "name": "Ground beef, 80% lean, per lb", "category": "Meat",
      "search": "ground beef", "require": ["ground beef", ["80%", "80/20"]],
      "exclude": ["patties", "burger", "frozen", "grass fed", "organic", "pork", "turkey"],
-     "unit": "lb", "size": (0.5, 6)},
+     "unit": "lb", "size": (0.5, 6), "qty": 1},
 
     # --- Pantry ---
     {"slug": "peanut-butter-16oz", "name": "Peanut butter, creamy, 16 oz", "category": "Pantry",
      "search": "creamy peanut butter", "require": ["peanut butter", "creamy"],
      "exclude": ["cups", "cracker", "cookie", "powder", "pretzel", "bar", "natural", "honey", "reduced",
                  "protein", "organic", "no sugar", "no stir", "gluten free"],
-     "unit": "oz", "size": (15, 18)},
+     "unit": "oz", "size": (15, 18), "qty": 16},
     {"slug": "black-beans-can", "name": "Black beans, canned, 15 oz", "category": "Pantry",
      "search": "canned black beans", "require": ["black beans"],
      "exclude": ["dry", "dried", "refried", "soup", "seasoned", "low sodium", "reduced sodium",
                  "no salt", "nsa", "organic", "rice"],
-     "unit": "oz", "size": (15, 16)},
+     "unit": "oz", "size": (15, 16), "qty": 15},
     {"slug": "vegetable-oil-48oz", "name": "Vegetable oil, 48 fl oz", "category": "Pantry",
      "search": "vegetable oil 48 oz", "require": ["vegetable oil"],
      "exclude": ["spray", "blend"],
@@ -145,7 +147,7 @@ BASKET = [
      "exclude": ["k cup", "pods", "instant", "creamer", "decaf", "whole bean", "espresso",
                  "flavored", "cold brew", "single serve", "vanilla", "hazelnut", "caramel", "macadamia",
                  "mocha", "cinnamon", "pecan", "chocolate"],
-     "unit": "oz", "size": (10, 40)},
+     "unit": "oz", "size": (10, 40), "qty": 12},
 ]
 
 BASKET_BY_SLUG = {item["slug"]: item for item in BASKET}
@@ -242,6 +244,7 @@ def product_rows():
             "size_unit": item["unit"],
             "unit_label": item["unit"],
             "unit_base_qty": per_unit,
+            "basket_qty": item.get("qty", low),
             "active": True,
         })
     return rows

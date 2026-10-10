@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+/* Color tokens. Components use these by role (bg-surface, text-ink-2, ...)
+   so light and dark mode swap in one place. */
+:root {
+  color-scheme: light;
+  --page: #f6f5f1;
+  --surface: #fcfcfb;
+  --surface-2: #f0efec;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #6f6d68;
+  --line: #e1e0d9;
+  --line-strong: #c3c2b7;
+  --accent: #17633a;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2efe6;
+  --sale-bg: #fde8dd;
+  --sale-ink: #9a3412;
+  --down: #006300; /* price went down (good) */
+  --up: #b42318;   /* price went up (bad) */
+  /* Chart series, one per store (validated for color-blind safety). */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0f0f0e;
+    --surface: #1a1a19;
+    --surface-2: #242422;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #9a988f;
+    --line: #2c2c2a;
+    --line-strong: #383835;
+    --accent: #4cc27f;
+    --accent-ink: #08210f;
+    --accent-soft: #15301f;
+    --sale-bg: #3a1d10;
+    --sale-ink: #f6a37a;
+    --down: #3fbf5a;
+    --up: #f07167;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0f0f0e;
+  --surface: #1a1a19;
+  --surface-2: #242422;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --muted: #9a988f;
+  --line: #2c2c2a;
+  --line-strong: #383835;
+  --accent: #4cc27f;
+  --accent-ink: #08210f;
+  --accent-soft: #15301f;
+  --sale-bg: #3a1d10;
+  --sale-ink: #f6a37a;
+  --down: #3fbf5a;
+  --up: #f07167;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-sale-bg: var(--sale-bg);
+  --color-sale-ink: var(--sale-ink);
+  --color-down: var(--down);
+  --color-up: var(--up);
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+}
+
+/* Visible keyboard focus everywhere. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
