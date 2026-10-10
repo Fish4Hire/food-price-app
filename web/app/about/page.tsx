@@ -14,7 +14,7 @@ export default async function AboutPage() {
     <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
       <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">How it works</h1>
       <p className="mt-3 text-lg text-ink-2">
-        Basket tracks what everyday groceries cost in Houston, so you can see which store is cheapest and when prices move.
+        Cheaper Eats tracks what everyday groceries cost in Houston, so you can see which store is cheapest and when prices move.
       </p>
 
       <div className="mt-10 space-y-10">
