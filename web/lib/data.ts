@@ -4,7 +4,7 @@
 // cached for an hour: visitors get fast pages and Supabase gets few requests.
 
 import { cacheLife } from "next/cache";
-import type { HistoryRow, Listing, Product, Store } from "./types";
+import type { BenchmarkRow, HistoryRow, Listing, Product, Store } from "./types";
 
 const PAGE_SIZE = 1000; // Supabase returns at most 1,000 rows per request
 
@@ -34,13 +34,14 @@ export type PriceData = {
   products: Product[];
   listings: Listing[];
   history: HistoryRow[];
+  benchmarks: BenchmarkRow[];
 };
 
 export async function getPriceData(): Promise<PriceData> {
   "use cache";
   cacheLife("hours");
 
-  const [stores, products, listings, history] = await Promise.all([
+  const [stores, products, listings, history, benchmarks] = await Promise.all([
     fetchAll<Store>("locations?select=id,name,address_line1,city,zip_code&order=id"),
     fetchAll<Product>(
       "products?select=id,slug,name,category,unit_label,basket_qty&active=eq.true&order=id",
@@ -53,6 +54,7 @@ export async function getPriceData(): Promise<PriceData> {
     fetchAll<HistoryRow>(
       "basket_price_history?select=product_id,location_id,day,price_per_unit&order=day",
     ),
+    fetchAll<BenchmarkRow>("benchmark_prices?select=product_id,period,price_per_unit&order=period"),
   ]);
-  return { stores, products, listings, history };
+  return { stores, products, listings, history, benchmarks };
 }

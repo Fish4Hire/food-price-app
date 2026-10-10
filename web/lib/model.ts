@@ -1,8 +1,8 @@
 // Turns raw database rows into the shapes the pages need.
 
-import { houstonTime, longDay } from "./format";
+import { houstonTime, longDay, monthLabel } from "./format";
 import type { PriceData } from "./data";
-import type { DashboardItem, DashboardModel, Listing, Offer, Point, Store } from "./types";
+import type { Benchmark, BenchmarkRow, DashboardItem, DashboardModel, Listing, Offer, Point, Store } from "./types";
 
 /** All stores selected: compare across every store. Otherwise a store id. */
 export type StoreChoice = "all" | number;
@@ -19,7 +19,43 @@ export function toOffer(listing: Listing): Offer {
   };
 }
 
-export function buildDashboard({ stores, products, listings, history }: PriceData): DashboardModel {
+export function buildBenchmark(rows: BenchmarkRow[], productId: number): Benchmark | null {
+  const points: Point[] = rows
+    .filter((row) => row.product_id === productId)
+    .map((row) => [row.period, row.price_per_unit]);
+  if (!points.length) return null;
+  const [latestPeriod, latestValue] = points[points.length - 1];
+  return { ppu: latestValue, periodLabel: monthLabel(latestPeriod), history: points };
+}
+
+/** The U.S. average in effect on a day: the latest published month on or before it. */
+export function benchmarkOn(benchmark: Benchmark, day: string): number {
+  let value = benchmark.history[0][1];
+  for (const [period, v] of benchmark.history) {
+    if (period <= day) value = v;
+  }
+  return value;
+}
+
+/**
+ * Our basket vs the U.S. average, using only items the BLS tracks.
+ * Returns the fractional difference (-0.2 = 20% below) and how many items were compared.
+ */
+export function basketVsBenchmark(items: DashboardItem[], choice: StoreChoice) {
+  let ours = 0;
+  let average = 0;
+  let count = 0;
+  for (const item of items) {
+    const picked = pickOffer(item, choice);
+    if (!item.benchmark || !picked) continue;
+    ours += picked.offer.ppu * item.basketQty;
+    average += item.benchmark.ppu * item.basketQty;
+    count += 1;
+  }
+  return count ? { change: (ours - average) / average, count } : null;
+}
+
+export function buildDashboard({ stores, products, listings, history, benchmarks }: PriceData): DashboardModel {
   const items: DashboardItem[] = products.map((product) => {
     // Listings arrive sorted by price per unit, so the first per store is the cheapest.
     const offers: Record<number, Offer> = {};
@@ -42,6 +78,7 @@ export function buildDashboard({ stores, products, listings, history }: PriceDat
       basketQty: product.basket_qty,
       offers,
       history: itemHistory,
+      benchmark: buildBenchmark(benchmarks, product.id),
     };
   });
 

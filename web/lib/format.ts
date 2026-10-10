@@ -30,6 +30,15 @@ export function longDay(day: string): string {
   });
 }
 
+/** "Aug 2026" from "2026-08-01". */
+export function monthLabel(period: string): string {
+  return new Date(`${period.slice(0, 7)}-15T12:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 /** "Oct 10, 2:15 PM" in Houston time. */
 export function houstonTime(timestamp: string): string {
   return new Date(timestamp).toLocaleString("en-US", {

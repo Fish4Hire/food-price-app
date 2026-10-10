@@ -41,6 +41,20 @@ export type HistoryRow = {
   price_per_unit: number;
 };
 
+/** One row of benchmark_prices: an official monthly average (e.g. BLS). */
+export type BenchmarkRow = {
+  product_id: number;
+  period: string; // YYYY-MM-01
+  price_per_unit: number;
+};
+
+/** The latest U.S. average for an item, plus its monthly history. */
+export type Benchmark = {
+  ppu: number;
+  periodLabel: string; // "Aug 2026"
+  history: Point[];    // [YYYY-MM-01, price per unit], oldest first
+};
+
 /** [day, price per unit] */
 export type Point = [string, number];
 
@@ -63,6 +77,7 @@ export type DashboardItem = {
   basketQty: number;
   offers: Record<number, Offer>;      // by store id
   history: Record<number, Point[]>;   // by store id, oldest first
+  benchmark: Benchmark | null;         // U.S. average, if the BLS tracks this item
 };
 
 export type DashboardModel = {

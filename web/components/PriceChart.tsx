@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { perUnit, shortDay } from "@/lib/format";
 import type { Point } from "@/lib/types";
 
-export type ChartSeries = { id: number; label: string; color: string; points: Point[] };
+/** dashed: a reference line (like the U.S. average) rather than a store. */
+export type ChartSeries = { id: number; label: string; color: string; points: Point[]; dashed?: boolean };
 
 const HEIGHT = 280;
 const MARGIN = { top: 16, right: 96, bottom: 28, left: 56 };
@@ -18,7 +19,8 @@ function niceTicks(min: number, max: number, count = 4): number[] {
   const magnitude = 10 ** Math.floor(Math.log10(raw));
   const step = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= raw) ?? raw;
   const ticks = [];
-  for (let t = Math.floor(min / step) * step; t <= max + step * 0.001; t += step) ticks.push(t);
+  const last = Math.ceil(max / step - 0.001) * step; // first tick at or above max
+  for (let t = Math.floor(min / step) * step; t <= last + step * 0.001; t += step) ticks.push(t);
   return ticks;
 }
 
@@ -88,6 +90,16 @@ export function PriceChart({ series, unit }: { series: ChartSeries[]; unit: stri
     MARGIN.top + plotH,
   );
 
+  /** Reference lines (monthly averages) are flat steps spanning the whole plot. */
+  function stepPath(points: Point[]): string {
+    if (!points.length) return "";
+    let d = `M${MARGIN.left},${y(points[0][1])}`;
+    for (let i = 1; i < points.length; i++) {
+      if (points[i][1] !== points[i - 1][1]) d += `H${x(points[i][0])}V${y(points[i][1])}`;
+    }
+    return `${d}H${MARGIN.left + plotW}`;
+  }
+
   function indexFromPointer(clientX: number) {
     const rect = wrapRef.current!.getBoundingClientRect();
     const px = clientX - rect.left;
@@ -113,7 +125,7 @@ export function PriceChart({ series, unit }: { series: ChartSeries[]; unit: stri
         <ul className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-ink-2">
           {series.map((s) => (
             <li key={s.id} className="flex items-center gap-2">
-              <span className="h-0.5 w-4 rounded-full" style={{ background: s.color }} />
+              <LineKey series={s} className="w-4" />
               {s.label}
             </li>
           ))}
@@ -164,12 +176,20 @@ export function PriceChart({ series, unit }: { series: ChartSeries[]; unit: stri
 
             {/* Lines, each with a surface-colored ring so overlapping lines stay visible */}
             {series.map((s) => {
-              const d = s.points.map(([day, v], i) => `${i ? "L" : "M"}${x(day)},${y(v)}`).join("");
+              const d = s.dashed ? stepPath(s.points) : s.points.map(([day, v], i) => `${i ? "L" : "M"}${x(day)},${y(v)}`).join("");
               return (
                 <g key={s.id}>
                   <path d={d} fill="none" stroke="var(--surface)" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round" />
-                  <path d={d} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-                  {s.points.length === 1 && (
+                  <path
+                    d={d}
+                    fill="none"
+                    stroke={s.color}
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    strokeDasharray={s.dashed ? "6 5" : undefined}
+                  />
+                  {s.points.length === 1 && !s.dashed && (
                     <circle cx={x(s.points[0][0])} cy={y(s.points[0][1])} r="4.5" fill={s.color} stroke="var(--surface)" strokeWidth="2" />
                   )}
                 </g>
@@ -194,6 +214,7 @@ export function PriceChart({ series, unit }: { series: ChartSeries[]; unit: stri
                       stroke={s.color}
                       strokeWidth="2"
                       strokeLinecap="round"
+                      strokeDasharray={s.dashed ? "3 2" : undefined}
                     />
                     <text x={MARGIN.left + plotW + 20} y={endLabels[i]} dy="0.32em" className="fill-ink-2 text-[11px]">
                       {s.label}
@@ -218,7 +239,7 @@ export function PriceChart({ series, unit }: { series: ChartSeries[]; unit: stri
               .sort((a, b) => a.value - b.value)
               .map(({ s, value }) => (
                 <p key={s.id} className="flex items-center gap-2 whitespace-nowrap">
-                  <span className="h-0.5 w-3 rounded-full" style={{ background: s.color }} />
+                  <LineKey series={s} className="w-3" />
                   <span className="font-semibold tabular-nums text-ink">{perUnit(value, unit)}</span>
                   <span className="text-ink-2">{s.label}</span>
                 </p>
@@ -227,5 +248,14 @@ export function PriceChart({ series, unit }: { series: ChartSeries[]; unit: stri
         )}
       </div>
     </div>
+  );
+}
+
+/** A short line in the series color: solid for stores, dashed for reference lines. */
+function LineKey({ series, className }: { series: ChartSeries; className: string }) {
+  return series.dashed ? (
+    <span className={`border-t-2 border-dashed ${className}`} style={{ borderColor: series.color }} />
+  ) : (
+    <span className={`h-0.5 rounded-full ${className}`} style={{ background: series.color }} />
   );
 }

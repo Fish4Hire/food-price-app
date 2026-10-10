@@ -1,0 +1,30 @@
+# Downloads the Bureau of Labor Statistics' U.S. average grocery prices every
+# week. The BLS publishes once a month; checking weekly picks up new months soon
+# after release. Results: GitHub repo -> Actions tab.
+name: Collect BLS benchmarks
+
+on:
+  schedule:
+    - cron: "0 14 * * 1" # Mondays 14:00 UTC
+  workflow_dispatch: # adds a "Run workflow" button for running it by hand
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Collect BLS averages
+        run: python collect_benchmarks.py
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}

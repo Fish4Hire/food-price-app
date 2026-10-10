@@ -6,7 +6,7 @@ import { ItemChart } from "@/components/ItemChart";
 import type { ChartSeries } from "@/components/PriceChart";
 import { getPriceData } from "@/lib/data";
 import { money, perUnit, shortDay, shortStore } from "@/lib/format";
-import { storeName } from "@/lib/model";
+import { benchmarkOn, buildBenchmark, storeName } from "@/lib/model";
 import type { Listing, Point } from "@/lib/types";
 
 export async function generateStaticParams() {
@@ -45,7 +45,7 @@ async function ItemContent({ slug }: { slug: string }) {
   "use cache";
   cacheLife("hours");
 
-  const { stores, products, listings, history } = await getPriceData();
+  const { stores, products, listings, history, benchmarks } = await getPriceData();
   const product = products.find((p) => p.slug === slug);
   if (!product) notFound();
   const unit = product.unit_label;
@@ -60,7 +60,20 @@ async function ItemContent({ slug }: { slug: string }) {
     color: SERIES_COLORS[i % SERIES_COLORS.length],
     points: itemHistory.filter((h) => h.location_id === store.id).map((h): Point => [h.day, h.price_per_unit]),
   }));
-  const trackedDays = new Set(itemHistory.map((h) => h.day)).size;
+  const days = [...new Set(itemHistory.map((h) => h.day))].sort();
+  const trackedDays = days.length;
+
+  // The U.S. average as a dashed line: on each day, the latest month the BLS had published.
+  const benchmark = buildBenchmark(benchmarks, product.id);
+  if (benchmark && days.length) {
+    series.push({
+      id: -1,
+      label: "U.S. avg",
+      color: "var(--ink-2)",
+      dashed: true,
+      points: days.map((day): Point => [day, benchmarkOn(benchmark, day)]),
+    });
+  }
 
   // Today's cheapest, and the lowest ever recorded.
   const cheapest = itemListings.reduce<Listing | null>(
@@ -106,11 +119,23 @@ async function ItemContent({ slug }: { slug: string }) {
           value={cheapest ? perUnit(cheapest.price_per_unit, unit) : "—"}
           detail={cheapest ? `${cheapest.brand ?? cheapest.description} · ${shortStore(storeName(stores, cheapest.location_id))}` : "No prices today"}
         />
-        <Stat
-          label="In the weekly basket"
-          value={cheapest ? money(cheapest.price_per_unit * product.basket_qty) : "—"}
-          detail={`${product.basket_qty} ${unit} at the lowest price`}
-        />
+        {benchmark ? (
+          <Stat
+            label="U.S. average"
+            value={perUnit(benchmark.ppu, unit)}
+            detail={
+              cheapest
+                ? `${vsAverageText(cheapest.price_per_unit, benchmark.ppu)} · ${benchmark.periodLabel}`
+                : benchmark.periodLabel
+            }
+          />
+        ) : (
+          <Stat
+            label="In the weekly basket"
+            value={cheapest ? money(cheapest.price_per_unit * product.basket_qty) : "—"}
+            detail={`${product.basket_qty} ${unit} at the lowest price`}
+          />
+        )}
         <Stat
           label="Lowest recorded"
           value={lowest ? perUnit(lowest.price_per_unit, unit) : "—"}
@@ -128,6 +153,12 @@ async function ItemContent({ slug }: { slug: string }) {
         <h2 className="font-semibold">Lowest price per {unit}, by store</h2>
         <p className="mb-4 mt-1 text-sm text-ink-2">The cheapest matching product at each store, each day. Sale prices included.</p>
         <ItemChart series={series} unit={unit} trackedDays={trackedDays} />
+        {benchmark && (
+          <p className="mt-4 text-sm text-muted">
+            Dashed line: the Bureau of Labor Statistics&apos; monthly U.S. average price ({benchmark.periodLabel} is the
+            latest). It averages all brands and stores, so it usually sits above the cheapest option shown here.
+          </p>
+        )}
       </section>
 
       {/* Every matching product */}
@@ -202,4 +233,11 @@ function Stat({ label, value, detail }: { label: string; value: string; detail: 
       <p className="mt-1 truncate text-sm text-muted">{detail}</p>
     </div>
   );
+}
+
+/** "Today's lowest is 18% below" style text comparing a price to the U.S. average. */
+function vsAverageText(ours: number, average: number): string {
+  const change = (ours - average) / average;
+  if (Math.abs(change) < 0.005) return "Lowest today is about average";
+  return `Lowest today is ${Math.abs(change * 100).toFixed(0)}% ${change < 0 ? "below" : "above"}`;
 }

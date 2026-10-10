@@ -76,6 +76,19 @@ export default async function AboutPage() {
           </p>
         </Section>
 
+        <Section title="The U.S. average">
+          <p>
+            For items the government tracks, Cheaper Eats compares prices with the Bureau of Labor Statistics&apos; average
+            prices, the same survey used to measure inflation. The BLS publishes a U.S. city average for each item every
+            month, about two weeks after the month ends.
+          </p>
+          <p className="mt-3">
+            Keep in mind that the BLS averages every brand and store, while Cheaper Eats shows the cheapest option. So our
+            prices usually come in below the average. That&apos;s the point: it shows how much you can save by picking the
+            cheapest option.
+          </p>
+        </Section>
+
         <Section title="Good to know">
           <ul className="list-disc space-y-2 pl-5">
             <li>Prices are the online shelf prices Kroger reports. Digital coupons and loyalty deals aren&apos;t included.</li>

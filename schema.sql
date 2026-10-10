@@ -156,6 +156,25 @@ grant select on latest_listing_prices, latest_basket_prices, basket_price_histor
     to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
+-- Benchmarks (added 2026-10-10): official average prices to compare against,
+-- e.g. the Bureau of Labor Statistics' monthly U.S. city average prices.
+-- Unlike prices, rows are updated in place, because the BLS revises its numbers.
+-- ---------------------------------------------------------------------------
+create table if not exists benchmark_prices (
+    id              bigint generated always as identity primary key,
+    product_id      bigint not null references products(id),
+    source          text not null,          -- 'bls'
+    series_id       text not null,          -- e.g. 'APU0000708111' (eggs, grade A large)
+    area            text not null,          -- e.g. 'U.S. city average'
+    period          date not null,          -- first day of the month the average covers
+    price           numeric not null,       -- as published, in source_unit
+    source_unit     text not null,          -- 'lb', 'gal' or 'dozen'
+    price_per_unit  numeric not null,       -- converted to the product's unit_label
+    fetched_at      timestamptz not null default now(),
+    unique (series_id, period)
+);
+
+-- ---------------------------------------------------------------------------
 -- Security: turn on Row Level Security. Our Python scripts use the secret key,
 -- which bypasses these rules. The public key (used later by the website) may
 -- only READ.
@@ -164,12 +183,15 @@ alter table locations   enable row level security;
 alter table products    enable row level security;
 alter table store_items enable row level security;
 alter table prices      enable row level security;
+alter table benchmark_prices enable row level security;
 
 drop policy if exists "public read" on locations;
 drop policy if exists "public read" on products;
 drop policy if exists "public read" on store_items;
 drop policy if exists "public read" on prices;
+drop policy if exists "public read" on benchmark_prices;
 create policy "public read" on locations   for select using (true);
 create policy "public read" on products    for select using (true);
 create policy "public read" on store_items for select using (true);
 create policy "public read" on prices      for select using (true);
+create policy "public read" on benchmark_prices for select using (true);

@@ -89,6 +89,17 @@ def update_store_item(client, store_item_id, fields):
     client.table("store_items").update(fields).eq("id", store_item_id).execute()
 
 
+def basket_products(client):
+    """Every product's id, slug and comparison unit."""
+    return client.table("products").select("id, slug, unit_label").execute().data
+
+
+def upsert_benchmarks(client, rows):
+    """Save benchmark averages, replacing any month we already have (the BLS revises)."""
+    if rows:
+        client.table("benchmark_prices").upsert(rows, on_conflict="series_id,period").execute()
+
+
 def insert_prices(client, rows):
     """Add price rows. Always inserts new rows; never changes old ones."""
     if rows:

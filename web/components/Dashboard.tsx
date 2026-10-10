@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { money, percent, perUnit, shortStore } from "@/lib/format";
 import {
   basketCost,
+  basketVsBenchmark,
   pickHistory,
   pickOffer,
   weeklyChange,
@@ -90,6 +91,7 @@ export function Dashboard({ model }: { model: DashboardModel }) {
       });
   }, [items, store, category, saleOnly, maxPrice, query, sort]);
 
+  const vsAverage = basketVsBenchmark(items, store);
   const onSaleCount = items.filter((item) => pickOffer(item, store)?.offer.onSale).length;
   const filtersActive = category !== null || saleOnly || query !== "" || maxPrice < priceCeiling;
   const selectedStoreName = store === "all" ? null : stores.find((s) => s.id === store)?.name;
@@ -118,6 +120,11 @@ export function Dashboard({ model }: { model: DashboardModel }) {
             ) : (
               <span className="rounded-full bg-surface-2 px-3 py-1 text-ink-2">
                 Tracking since {model.trackingSinceLabel} · weekly trends start after 7 days
+              </span>
+            )}
+            {vsAverage && (
+              <span title="Compared with the Bureau of Labor Statistics' latest U.S. average prices">
+                <ChangePill change={vsAverage.change} suffix={`vs U.S. average (${vsAverage.count} items)`} />
               </span>
             )}
             <span className="rounded-full bg-sale-bg px-3 py-1 font-medium text-sale-ink">
@@ -300,11 +307,14 @@ function ItemRow({
           {offer.description}
           {offer.size && <span className="text-muted"> · {offer.size}</span>}
         </p>
-        {(storeLabel || spread) && (
+        {(spread || item.benchmark) && (
           <p className="mt-0.5 text-xs text-muted">
-            {spread?.same
-              ? "Same price at all stores"
-              : `Cheapest at ${storeLabel} · up to ${perUnit(spread!.high, item.unit)} elsewhere`}
+            {spread &&
+              (spread.same
+                ? "Same price at all stores"
+                : `Cheapest at ${storeLabel} · up to ${perUnit(spread.high, item.unit)} elsewhere`)}
+            {spread && item.benchmark && " · "}
+            {item.benchmark && <VsAverage ours={offer.ppu} average={item.benchmark.ppu} />}
           </p>
         )}
       </div>
@@ -339,6 +349,17 @@ function ItemRow({
         </p>
       )}
     </Link>
+  );
+}
+
+/** "18% below U.S. avg", colored, with the words carrying the meaning too. */
+function VsAverage({ ours, average }: { ours: number; average: number }) {
+  const change = (ours - average) / average;
+  if (Math.abs(change) < 0.005) return <span>about the U.S. average</span>;
+  return (
+    <span className={change < 0 ? "text-down" : "text-up"}>
+      {Math.abs(change * 100).toFixed(0)}% {change < 0 ? "below" : "above"} U.S. avg
+    </span>
   );
 }
 
