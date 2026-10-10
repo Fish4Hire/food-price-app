@@ -1,0 +1,11 @@
+# Files never uploaded to Vercel when deploying from this computer.
+# Secrets
+.env
+.env.*
+web/.env*
+.kroger_token.json
+# Local-only files
+logs/
+__pycache__/
+web/node_modules/
+web/.next/
