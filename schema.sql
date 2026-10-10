@@ -91,6 +91,49 @@ create trigger prices_append_only
     for each row execute function prices_block_changes();
 
 -- ---------------------------------------------------------------------------
+-- Basket (added 2026-10-10): canonical products, normalized sizes, and a view
+-- with today's cheapest price for each basket item at each store.
+-- ---------------------------------------------------------------------------
+alter table products add column if not exists slug          text unique;  -- permanent ID from basket.py
+alter table products add column if not exists unit_label    text;         -- compare prices per this unit: 'gal', 'lb', 'dozen', 'oz', 'fl oz'
+alter table products add column if not exists unit_base_qty numeric;      -- base units in one unit_label (gal = 128 fl oz)
+alter table products add column if not exists active        boolean not null default true;
+
+alter table store_items add column if not exists base_qty  numeric;       -- package size in base units, e.g. 64
+alter table store_items add column if not exists base_unit text;          -- 'fl oz', 'oz' or 'ct'
+
+create index if not exists store_items_product on store_items (product_id);
+
+-- For each basket item at each store: the cheapest matching listing, using the
+-- latest price seen in the last 3 days. price = sale price if there is one.
+drop view if exists latest_basket_prices;
+create view latest_basket_prices with (security_invoker = true) as
+with recent as (
+    select distinct on (p.location_id, p.store_item_id)
+        p.location_id, p.store_item_id, p.regular_price, p.promo_price,
+        coalesce(p.promo_price, p.regular_price) as price, p.fetched_at
+    from prices p
+    where p.fetched_at > now() - interval '3 days'
+    order by p.location_id, p.store_item_id, p.fetched_at desc
+),
+priced as (
+    select pr.id as product_id, pr.slug, pr.name as product, pr.category, pr.unit_label,
+           r.location_id, si.id as store_item_id, si.description, si.brand, si.size,
+           r.regular_price, r.promo_price, r.price,
+           round(r.price / (si.base_qty / pr.unit_base_qty), 2) as price_per_unit,
+           r.fetched_at
+    from recent r
+    join store_items si on si.id = r.store_item_id
+    join products pr on pr.id = si.product_id
+    where pr.active and si.base_qty > 0
+)
+select distinct on (pd.product_id, pd.location_id)
+    pd.*, l.name as store
+from priced pd
+join locations l on l.id = pd.location_id
+order by pd.product_id, pd.location_id, pd.price_per_unit, pd.price;
+
+-- ---------------------------------------------------------------------------
 -- Security: turn on Row Level Security. Our Python scripts use the secret key,
 -- which bypasses these rules. The public key (used later by the website) may
 -- only READ.

@@ -50,6 +50,45 @@ def upsert_store_items(client, rows):
     return {row["external_id"]: row["id"] for row in result.data}
 
 
+def upsert_products(client, rows):
+    """Insert or update basket products. Returns a dict mapping slug to database id."""
+    result = client.table("products").upsert(rows, on_conflict="slug").execute()
+    return {row["slug"]: row["id"] for row in result.data}
+
+
+def deactivate_products_except(client, slugs):
+    """Mark products no longer in the basket as inactive (kept, because prices point to them)."""
+    (
+        client.table("products")
+        .update({"active": False})
+        .not_.in_("slug", slugs)
+        .execute()
+    )
+
+
+def all_store_items(client):
+    """Fetch every saved listing, 1,000 at a time (Supabase's page size)."""
+    rows, start = [], 0
+    while True:
+        page = (
+            client.table("store_items")
+            .select("id, description, size, size_value, size_unit, base_qty, base_unit, product_id")
+            .order("id")
+            .range(start, start + 999)
+            .execute()
+            .data
+        )
+        rows += page
+        if len(page) < 1000:
+            return rows
+        start += 1000
+
+
+def update_store_item(client, store_item_id, fields):
+    """Change fields on one saved listing (listings can be updated; prices cannot)."""
+    client.table("store_items").update(fields).eq("id", store_item_id).execute()
+
+
 def insert_prices(client, rows):
     """Add price rows. Always inserts new rows; never changes old ones."""
     if rows:

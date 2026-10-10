@@ -1,44 +1,28 @@
 """
-Collect Kroger prices and save them to Supabase.
+Collect Kroger prices for the basket (see basket.py) and save them to Supabase.
 
-For the stores nearest ZIP_CODE, searches each term in SEARCH_TERMS and saves:
+For the stores nearest ZIP_CODE, searches each basket item and saves only
+listings that match a basket item's rules:
   - each store            -> locations   (added once, refreshed on later runs)
-  - each product listing  -> store_items (added once, refreshed on later runs)
+  - each matching listing -> store_items (added once, refreshed, linked to its product)
   - each price we see     -> prices      (a NEW row every run, never overwritten)
 
 Run it with:  python collect_prices.py
 """
 
-import re
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 
+import basket
 import db
 import kroger_api
 
 ZIP_CODE = "77002"
 NUM_STORES = 3
-# Each term costs 1 Kroger API call per store (3 stores x 12 terms = 36 calls per run).
-SEARCH_TERMS = [
-    "milk", "eggs", "bread", "butter", "cheese", "bananas",
-    "apples", "chicken breast", "ground beef", "rice", "pasta", "coffee",
-]
-ITEMS_PER_SEARCH = 10
-
-
-def parse_size(size_text):
-    """Split a size like '1/2 gal' or '64 fl oz' into (0.5, 'gal') or (64, 'fl oz')."""
-    if not size_text:
-        return None, None
-    size_text = size_text.split(" / ")[0]    # '12 ct / 24 oz' -> '12 ct'
-    match = re.match(r"^\s*(\d+)\s*/\s*(\d+)\s+(.+)$", size_text)   # fraction, e.g. 1/2 gal
-    if match:
-        return int(match.group(1)) / int(match.group(2)), match.group(3).strip().lower()
-    match = re.match(r"^\s*(\d+(?:\.\d+)?)\s*(.+)$", size_text)      # number, e.g. 64 fl oz
-    if match:
-        return float(match.group(1)), match.group(2).strip().lower()
-    return None, None
+# 50 is Kroger's max per search, and costs the same single API call as 10.
+ITEMS_PER_SEARCH = 50
+# API calls per run: 1 token + 1 store lookup + (basket items x stores) = about 65.
 
 
 def location_row(store):
@@ -61,18 +45,17 @@ def location_row(store):
     }
 
 
-def store_item_row(product, item):
+def store_item_row(product, item, product_id):
     """Convert a Kroger product + item into a row for the store_items table."""
-    size_value, size_unit = parse_size(item.get("size"))
     return {
         "source": "kroger",
         "external_id": item.get("itemId") or product["productId"],
         "upc": product.get("upc"),
+        "product_id": product_id,
         "description": product.get("description"),
         "brand": product.get("brand"),
         "size": item.get("size"),
-        "size_value": size_value,
-        "size_unit": size_unit,
+        **basket.size_fields(item.get("size")),
         "sold_by": item.get("soldBy"),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -99,40 +82,52 @@ def price_row(item, store_item_id, location_id, search_term, fetched_at):
     }
 
 
+def collect_store(client, token, store, slug_to_id):
+    """Search every basket item at one store and save the matching prices."""
+    location_id = db.upsert_location(client, location_row(store))
+
+    # external_id -> (listing row, Kroger item, search term, fetch time).
+    # Keyed so a listing found by two searches is only saved once.
+    found = {}
+    for entry in basket.BASKET:
+        products = kroger_api.search_products(
+            token, store["locationId"], entry["search"], ITEMS_PER_SEARCH)
+        fetched_at = datetime.now(timezone.utc).isoformat()
+        for product in products:
+            for item in product.get("items", []):
+                if not (item.get("price") or {}).get("regular"):
+                    continue  # no price at this store
+                sizes = basket.size_fields(item.get("size"))
+                slug = basket.match_listing(
+                    product.get("description"), sizes["base_qty"], sizes["base_unit"])
+                if not slug:
+                    continue  # not a basket item
+                listing = store_item_row(product, item, slug_to_id[slug])
+                found.setdefault(listing["external_id"], (listing, item, entry["search"], fetched_at))
+
+    ids = db.upsert_store_items(client, [listing for listing, _, _, _ in found.values()])
+    rows = [
+        price_row(item, ids[listing["external_id"]], location_id, term, fetched_at)
+        for listing, item, term, fetched_at in found.values()
+    ]
+    db.insert_prices(client, rows)
+
+    matched_items = {listing["product_id"] for listing, _, _, _ in found.values()}
+    print(f"{store['name']} ({store['locationId']}): saved {len(rows)} prices "
+          f"covering {len(matched_items)} of {len(basket.BASKET)} basket items")
+
+
 def main():
     load_dotenv()
     client = db.get_client()
+    slug_to_id = basket.sync(client)   # make sure the basket is in the database
     token = kroger_api.get_token()
 
     stores = kroger_api.find_nearest_stores(token, ZIP_CODE, NUM_STORES)
-    total_prices = 0
-
     for store in stores:
-        location_id = db.upsert_location(client, location_row(store))
-        print(f"{store['name']} ({store['locationId']})")
+        collect_store(client, token, store, slug_to_id)
 
-        for term in SEARCH_TERMS:
-            products = kroger_api.search_products(token, store["locationId"], term, ITEMS_PER_SEARCH)
-            fetched_at = datetime.now(timezone.utc).isoformat()
-
-            # Pair each listing with its price, skipping listings with no price at this store.
-            found = []
-            for product in products:
-                for item in product.get("items", []):
-                    if (item.get("price") or {}).get("regular"):
-                        found.append((store_item_row(product, item), item))
-
-            ids = db.upsert_store_items(client, [listing for listing, _ in found])
-            rows = [
-                price_row(item, ids[listing["external_id"]], location_id, term, fetched_at)
-                for listing, item in found
-            ]
-
-            db.insert_prices(client, rows)
-            total_prices += len(rows)
-            print(f"  '{term}': saved {len(rows)} prices")
-
-    print(f"\nDone. Saved {total_prices} prices. Kroger API calls this run: {kroger_api.api_calls}")
+    print(f"\nDone. Kroger API calls this run: {kroger_api.api_calls}")
 
 
 if __name__ == "__main__":

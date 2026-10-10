@@ -19,7 +19,7 @@ BASE_URL = "https://api.kroger.com"
 TOKEN_CACHE = Path(__file__).parent / ".kroger_token.json"
 
 # Safety cap on API calls for a single run (daily limits are 10,000 / 1,600).
-MAX_CALLS_PER_RUN = 50
+MAX_CALLS_PER_RUN = 100
 api_calls = 0
 
 
