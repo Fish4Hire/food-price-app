@@ -30,6 +30,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        {/* Proves to Impact (Walmart's affiliate network) that we own this site. Keep it. */}
+        <meta
+          name="impact-site-verification"
+          // @ts-expect-error Impact reads a non-standard `value` attribute
+          value="bcea5ec1-af52-424a-9ea7-4d8a7bf123c4"
+          content="bcea5ec1-af52-424a-9ea7-4d8a7bf123c4"
+        />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <header className="border-b border-line bg-surface/80 backdrop-blur supports-[backdrop-filter]:bg-surface/70 sticky top-0 z-20">
           <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
