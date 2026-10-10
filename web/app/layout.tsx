@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://getcheapereats.com"),
   title: {
     default: "Cheaper Eats · Houston grocery prices",
     template: "%s · Cheaper Eats",

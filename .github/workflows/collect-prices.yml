@@ -1,0 +1,36 @@
+# Runs collect_prices.py on GitHub's computers every morning, so prices are
+# collected even when your PC is off. Results: GitHub repo -> Actions tab.
+name: Collect prices
+
+on:
+  schedule:
+    # 12:00 UTC = 7 AM Houston in summer (6 AM in winter). GitHub may start it a little late.
+    - cron: "0 12 * * *"
+  workflow_dispatch: # adds a "Run workflow" button for running it by hand
+
+concurrency:
+  group: collect-prices # never run two collections at once
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Collect prices
+        run: python collect_prices.py
+        env:
+          # Stored encrypted in GitHub: repo Settings -> Secrets and variables -> Actions
+          KROGER_CLIENT_ID: ${{ secrets.KROGER_CLIENT_ID }}
+          KROGER_CLIENT_SECRET: ${{ secrets.KROGER_CLIENT_SECRET }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
