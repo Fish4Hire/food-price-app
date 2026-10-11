@@ -46,7 +46,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
             <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap font-semibold tracking-tight">
               <BasketMark className="h-7 w-7" />
-              <span className="text-base sm:text-lg">Cheaper Eats</span>
+              <span className="sr-only min-[440px]:hidden">Cheaper Eats</span>
+              <span className="hidden text-base min-[440px]:inline sm:text-lg">Cheaper Eats</span>
               <span className="hidden text-sm font-normal text-muted lg:inline">
                 Grocery prices, compared
               </span>
