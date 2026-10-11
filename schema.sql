@@ -320,6 +320,20 @@ create policy "owners read" on menu_items for select to authenticated
 create policy "owners read" on menu_prices for select to authenticated
     using ((select is_app_owner()));
 
+-- Each dish's most recent price, with its restaurant. security_invoker means the
+-- owners-only rules on menu_items and menu_prices still apply.
+drop view if exists latest_menu_prices;
+create view latest_menu_prices with (security_invoker = true) as
+select distinct on (p.menu_item_id)
+    i.id as menu_item_id, i.name, i.section, i.description,
+    l.id as location_id, l.name as restaurant, l.cuisine, l.address_line1, l.website, l.menu_url,
+    p.price, p.source, p.fetched_at
+from menu_prices p
+join menu_items i on i.id = p.menu_item_id
+join locations l on l.id = i.location_id
+order by p.menu_item_id, p.fetched_at desc;
+grant select on latest_menu_prices to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- Benchmarks (added 2026-10-10): official average prices to compare against,
 -- e.g. the Bureau of Labor Statistics' monthly U.S. city average prices.
