@@ -2,6 +2,7 @@
 
 export type Store = {
   id: number;
+  external_id: string; // Kroger locationId
   name: string;
   address_line1: string | null;
   city: string | null;

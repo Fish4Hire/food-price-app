@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { signOut } from "@/app/auth/actions";
+import { HomeZipForm } from "@/components/HomeZipForm";
 import { getCurrentUser } from "@/lib/auth";
+import { getPriceData } from "@/lib/data";
 import { longDay } from "@/lib/format";
+import { getNearbyStores } from "@/lib/kroger";
+import { getProfile } from "@/lib/profile";
 
 export const metadata: Metadata = { title: "Your account" };
 
@@ -21,6 +25,7 @@ export default function AccountPage() {
 async function AccountDetails() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const profile = await getProfile(user.id);
 
   return (
     <div className="mt-6 space-y-4">
@@ -37,12 +42,19 @@ async function AccountDetails() {
         </dl>
       </section>
 
-      <section className="rounded-2xl border border-dashed border-line-strong p-6">
-        <p className="font-medium">Coming soon: prices near you</p>
-        <p className="mt-1 text-sm text-ink-2">
-          Save your home ZIP code to see the cheapest groceries at the stores closest to you.
+      <section className="rounded-2xl border border-line bg-surface p-6">
+        <h2 className="font-semibold">Where you shop</h2>
+        <p className="mb-4 mt-1 text-sm text-ink-2">
+          Your ZIP code is private. We use it only to find the grocery stores closest to you.
         </p>
+        <HomeZipForm currentZip={profile.homeZip} />
       </section>
+
+      {profile.homeZip && (
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-surface-2" />}>
+          <NearbyStores zip={profile.homeZip} />
+        </Suspense>
+      )}
 
       <form action={signOut}>
         <button
@@ -53,5 +65,53 @@ async function AccountDetails() {
         </button>
       </form>
     </div>
+  );
+}
+
+/** The Kroger-family stores closest to the user's ZIP, marking ones we already track. */
+async function NearbyStores({ zip }: { zip: string }) {
+  let stores;
+  try {
+    stores = await getNearbyStores(zip);
+  } catch {
+    return (
+      <section className="rounded-2xl border border-line bg-surface p-6 text-sm text-ink-2">
+        We couldn&apos;t look up stores near {zip} right now. Please try again later.
+      </section>
+    );
+  }
+  const tracked = new Set((await getPriceData()).stores.filter((s) => s.metro).map((s) => s.external_id));
+
+  return (
+    <section className="rounded-2xl border border-line bg-surface p-6">
+      <h2 className="font-semibold">Stores near {zip}</h2>
+      {stores.length === 0 ? (
+        <p className="mt-2 text-sm text-ink-2">
+          We didn&apos;t find any Kroger-family stores within 25 miles of {zip}. Cheaper Eats can&apos;t show prices
+          there yet, but we&apos;re adding more stores and chains.
+        </p>
+      ) : (
+        <>
+          <p className="mt-1 text-sm text-ink-2">Closest first. Soon you&apos;ll see prices for these on the home page.</p>
+          <ul className="mt-4 divide-y divide-line">
+            {stores.map((store) => (
+              <li key={store.locationId} className="flex items-start justify-between gap-4 py-3">
+                <div>
+                  <p className="font-medium text-ink">{store.name}</p>
+                  <p className="text-sm text-muted">
+                    {store.address}, {store.city}, {store.state} {store.zip}
+                  </p>
+                </div>
+                {tracked.has(store.locationId) && (
+                  <span className="shrink-0 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent">
+                    Prices tracked
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
   );
 }

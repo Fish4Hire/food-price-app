@@ -42,7 +42,7 @@ export async function getPriceData(): Promise<PriceData> {
   cacheLife("hours");
 
   const [stores, products, listings, history, benchmarks] = await Promise.all([
-    fetchAll<Store>("locations?select=id,name,address_line1,city,zip_code,metro&order=id"),
+    fetchAll<Store>("locations?select=id,external_id,name,address_line1,city,zip_code,metro&order=id"),
     fetchAll<Product>(
       "products?select=id,slug,name,category,unit_label,basket_qty&active=eq.true&order=id",
     ),

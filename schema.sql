@@ -162,6 +162,31 @@ grant select on latest_listing_prices, latest_basket_prices, basket_price_histor
 alter table locations add column if not exists metro text;
 
 -- ---------------------------------------------------------------------------
+-- Profiles (added 2026-10-11): one private row per signed-in user.
+-- Users are created by Supabase Auth (auth.users); deleting a user deletes this row.
+-- ---------------------------------------------------------------------------
+create table if not exists profiles (
+    id          uuid primary key references auth.users(id) on delete cascade,
+    home_zip    text check (home_zip ~ '^[0-9]{5}$'),
+    created_at  timestamptz not null default now(),
+    updated_at  timestamptz not null default now()
+);
+
+alter table profiles enable row level security;
+
+-- Each person can see, create and change only their own profile. Visitors get nothing.
+drop policy if exists "own profile: read" on profiles;
+drop policy if exists "own profile: insert" on profiles;
+drop policy if exists "own profile: update" on profiles;
+create policy "own profile: read"   on profiles for select to authenticated using ((select auth.uid()) = id);
+create policy "own profile: insert" on profiles for insert to authenticated with check ((select auth.uid()) = id);
+create policy "own profile: update" on profiles for update to authenticated
+    using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
+
+revoke all on profiles from anon;
+grant select, insert, update on profiles to authenticated;
+
+-- ---------------------------------------------------------------------------
 -- Benchmarks (added 2026-10-10): official average prices to compare against,
 -- e.g. the Bureau of Labor Statistics' monthly U.S. city average prices.
 -- Unlike prices, rows are updated in place, because the BLS revises its numbers.
