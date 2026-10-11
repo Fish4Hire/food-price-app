@@ -77,6 +77,8 @@ export function ListPricingView({ pricing }: { pricing: ListPricing }) {
             {rows.map(({ item, costs }) => {
               const available = stores.map((s) => costs[s.id]?.total).filter((t): t is number => t !== undefined);
               const cheapest = available.length ? Math.min(...available) : null;
+              // Highlight only when there's a real difference between stores.
+              const differs = available.some((t) => Math.abs(t - cheapest!) > 0.004);
               return (
                 <tr key={item.id} className="border-b border-line last:border-b-0">
                   <td className="px-4 py-3">
@@ -95,7 +97,7 @@ export function ListPricingView({ pricing }: { pricing: ListPricing }) {
                         </td>
                       );
                     }
-                    const isCheapest = stores.length > 1 && cost.total === cheapest;
+                    const isCheapest = differs && Math.abs(cost.total - cheapest!) <= 0.004;
                     return (
                       <td key={s.id} className={`px-3 py-3 text-right tabular-nums ${isCheapest ? "bg-accent-soft" : ""}`}>
                         <span className={isCheapest ? "font-semibold text-ink" : "text-ink-2"}>{money(cost.total)}</span>
