@@ -7,7 +7,8 @@ locations), and tries local restaurants' websites until it finds enough with a
 readable menu (at least MIN_ITEMS dishes with prices). Prints the picks and
 saves them to a JSON file for collect_menus.py.
 
-Run it with:  python pick_restaurants.py osm_san_antonio.json picks.json
+Run it with:  python pick_restaurants.py osm_san_antonio.json picks.json [already_picked.json] [how_many]
+(already-picked restaurants are skipped, so you can run it again for more)
 """
 
 import collections
@@ -36,8 +37,11 @@ def domain(url):
     return urlparse(url).netloc.lower().removeprefix("www.")
 
 
-def main(osm_path, out_path):
+def main(osm_path, out_path, exclude_path=None, wanted=WANTED):
     places = json.load(open(osm_path, encoding="utf-8"))
+    already = set()
+    if exclude_path:
+        already = {p["osm_id"] for p in json.load(open(exclude_path, encoding="utf-8"))}
     with_site = [p for p in places if website_of(p.get("tags", {}))]
     per_domain = collections.Counter(domain(website_of(p["tags"])) for p in with_site)
 
@@ -47,14 +51,15 @@ def main(osm_path, out_path):
         if per_domain[domain(website_of(p["tags"]))] <= 2
         and not any(d in domain(website_of(p["tags"])) for d in SKIP_DOMAINS)
         and p["tags"].get("name")
+        and f"{p['type']}/{p['id']}" not in already
     ]
-    random.Random(42).shuffle(candidates)  # a fair, repeatable mix of the city
+    random.Random(len(already) + 42).shuffle(candidates)  # a fair, repeatable mix of the city
     print(f"{len(places)} places, {len(with_site)} with websites, {len(candidates)} local candidates.\n")
 
     fetcher = menus.PoliteFetcher()
     picks, tried = [], 0
     for place in candidates:
-        if len(picks) >= WANTED or tried >= MAX_SITES_TRIED:
+        if len(picks) >= wanted or tried >= MAX_SITES_TRIED * max(1, wanted // WANTED):
             break
         tried += 1
         tags, home = place["tags"], website_of(place["tags"])
@@ -91,4 +96,5 @@ def main(osm_path, out_path):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None,
+         int(sys.argv[4]) if len(sys.argv) > 4 else WANTED)

@@ -55,6 +55,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/" className="rounded-full px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink">
                 Prices
               </Link>
+              <Link href="/eat" className="rounded-full px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink">
+                Eat out
+              </Link>
               <Link href="/list" className="rounded-full px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink">
                 My list
               </Link>

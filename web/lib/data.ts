@@ -8,7 +8,7 @@ import type { BenchmarkRow, HistoryRow, Listing, Product, Store } from "./types"
 
 const PAGE_SIZE = 1000; // Supabase returns at most 1,000 rows per request
 
-async function fetchAll<T>(path: string): Promise<T[]> {
+export async function fetchAll<T>(path: string): Promise<T[]> {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) {

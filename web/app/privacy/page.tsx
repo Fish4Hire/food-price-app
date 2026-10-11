@@ -10,7 +10,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy policy"
-      updated="October 11, 2026"
+      updated="October 12, 2026"
       intro={
         <p>
           Cheaper Eats (&ldquo;we&rdquo;) helps you find cheaper groceries. We collect as little personal information as we
@@ -37,6 +37,10 @@ export default function PrivacyPage() {
             <strong>Your home ZIP code</strong>, if you choose to save it, to find grocery stores near you.
           </li>
           <li>
+            <strong>Your home address</strong>, only if you choose to add it, to show how far restaurants are from you.
+            We store it along with its map coordinates.
+          </li>
+          <li>
             <strong>Your shopping lists</strong>: the items and quantities you add.
           </li>
           <li>
@@ -44,7 +48,8 @@ export default function PrivacyPage() {
           </li>
         </ul>
         <p>
-          We don&apos;t collect your name, street address, phone number, payment details or precise location.
+          We don&apos;t collect your name, phone number, payment details or your device&apos;s location. Your street
+          address is only collected if you add it yourself.
         </p>
       </LegalSection>
 
@@ -52,6 +57,10 @@ export default function PrivacyPage() {
         <ul>
           <li>To sign you in and keep you signed in.</li>
           <li>To show prices at stores near your ZIP code, and to decide which stores to check prices at each day.</li>
+          <li>
+            If you add an address, to show distances to restaurants. Distances are calculated in your own browser, so
+            your location never appears on any public page.
+          </li>
           <li>To save your shopping list and work out the cheapest way to buy it.</li>
           <li>To keep the site secure, fix problems, and respond when you contact us.</li>
         </ul>
@@ -83,6 +92,10 @@ export default function PrivacyPage() {
             check. ZIP codes are not linked to your email there and aren&apos;t kept in its logs.
           </li>
           <li>
+            <strong>U.S. Census Bureau</strong>: if you add an address, we send it to the Census Bureau&apos;s free public
+            geocoding service once, to turn it into map coordinates. We don&apos;t send your email or anything else.
+          </li>
+          <li>
             <strong>Kroger</strong>: to find stores near you and look up prices, we send ZIP codes and product searches to
             Kroger&apos;s public API. We don&apos;t send your email or any other account details.
           </li>
@@ -97,7 +110,7 @@ export default function PrivacyPage() {
       <LegalSection title="5. Prices and public information">
         <p>
           Grocery prices and the official U.S. averages we show come from public sources (Kroger&apos;s public API and the
-          Bureau of Labor Statistics). This information is about stores and products, not about you. Stores we check only
+          Bureau of Labor Statistics), and restaurant menu prices come from each restaurant&apos;s own public website. This information is about stores and products, not about you. Stores we check only
           because a user lives nearby are never shown publicly, so the site doesn&apos;t reveal where our users live.
         </p>
       </LegalSection>
@@ -105,12 +118,12 @@ export default function PrivacyPage() {
       <LegalSection title="6. How long we keep it, and your choices">
         <ul>
           <li>
-            You can change or remove your ZIP code and edit your shopping list at any time on your{" "}
+            You can change or remove your ZIP code and address, and edit your shopping list, at any time on your{" "}
             <Link href="/account">account</Link> and <Link href="/list">list</Link> pages.
           </li>
           <li>
             We keep your account information until you delete your account. You can delete it at any time on your{" "}
-            <Link href="/account">account page</Link>: your account, ZIP code and lists are deleted immediately. If you
+            <Link href="/account">account page</Link>: your account, ZIP code, address and lists are deleted immediately. If you
             can&apos;t sign in, email <ContactLink /> from the address you signed up with and we&apos;ll delete it within 30
             days.
           </li>

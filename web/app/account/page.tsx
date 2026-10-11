@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { signOut } from "@/app/auth/actions";
 import { DeleteAccount } from "@/components/DeleteAccount";
+import { HomeAddressForm } from "@/components/HomeAddressForm";
 import { HomeZipForm } from "@/components/HomeZipForm";
 import { getCurrentUser } from "@/lib/auth";
 import { getPriceData } from "@/lib/data";
@@ -49,6 +50,15 @@ async function AccountDetails() {
           Your ZIP code is private. We use it only to find the grocery stores closest to you.
         </p>
         <HomeZipForm currentZip={profile.homeZip} />
+      </section>
+
+      <section className="rounded-2xl border border-line bg-surface p-6">
+        <h2 className="font-semibold">Your address (optional)</h2>
+        <p className="mb-4 mt-1 text-sm text-ink-2">
+          Add your address to see how far each restaurant is from you. It&apos;s private: only you can see it, and
+          distances are worked out in your own browser.
+        </p>
+        <HomeAddressForm currentAddress={profile.homeAddress} />
       </section>
 
       {profile.homeZip && (

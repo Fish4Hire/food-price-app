@@ -8,7 +8,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of use"
-      updated="October 11, 2026"
+      updated="October 12, 2026"
       intro={
         <p>
           These terms explain the rules for using Cheaper Eats (&ldquo;we&rdquo;, &ldquo;us&rdquo;). By using the site or
@@ -26,7 +26,9 @@ export default function TermsPage() {
 
       <LegalSection title="2. Prices may be wrong or out of date">
         <p>
-          Prices come from third parties, mainly Kroger&apos;s public API, and are usually checked once a day. Stores
+          Grocery prices come from third parties, mainly Kroger&apos;s public API, and are usually checked once a day.
+          Restaurant menu prices are read from each restaurant&apos;s own website, usually once a week, and are read
+          automatically, so a dish or price can be misread or out of date. Stores
           change prices and run out of items, sale prices end, and the price at the register (including digital coupons,
           loyalty pricing, taxes and fees) can differ from what we show. Matching products, sizes and price-per-unit
           comparisons are done automatically and can contain mistakes.
@@ -63,7 +65,7 @@ export default function TermsPage() {
 
       <LegalSection title="5. Other companies">
         <p>
-          Cheaper Eats is independent. We aren&apos;t affiliated with, endorsed by or sponsored by Kroger, its stores
+          Cheaper Eats is independent. We aren&apos;t affiliated with, endorsed by or sponsored by the restaurants we list, Kroger, its stores
           (such as Ralphs, King Soopers, Fry&apos;s or QFC), Walmart, the Bureau of Labor Statistics or any other store or
           brand we mention. Store names, brand names and product images belong to their owners and are used only to
           identify products and stores.

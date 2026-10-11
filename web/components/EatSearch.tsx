@@ -1,8 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { money } from "@/lib/format";
+import { milesBetween } from "@/lib/geocode";
 import type { Dish } from "@/lib/menus";
+
+type Home = { lat: number; lon: number };
 
 const QUICK = ["tacos", "burger", "pho", "biryani", "crab", "pancakes", "enchiladas", "coffee", "pizza", "wings"];
 const PAGE = 60;
@@ -13,8 +17,29 @@ export function EatSearch({ dishes }: { dishes: Dish[] }) {
   const [cuisine, setCuisine] = useState<string | null>(null);
   const [restaurantId, setRestaurantId] = useState<number | null>(null);
   const [maxPriceSetting, setMaxPrice] = useState<number | null>(null);
-  const [sort, setSort] = useState<"low" | "high">("low");
+  const [sort, setSort] = useState<"low" | "high" | "near">("low");
   const [shown, setShown] = useState(PAGE);
+  const [withinMiles, setWithinMiles] = useState<number | null>(null);
+
+  // The visitor's own saved address (private), fetched after the page loads.
+  const [home, setHome] = useState<Home | null>(null);
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/home")
+      .then((response) => response.json() as Promise<{ home: Home | null; signedIn: boolean }>)
+      .then((result) => {
+        if (cancelled) return;
+        setHome(result.home);
+        setSignedIn(result.signedIn);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const distanceTo = (d: Dish) =>
+    home && d.lat !== null && d.lon !== null ? milesBetween(home.lat, home.lon, d.lat, d.lon) : null;
 
   const ceiling = useMemo(() => Math.ceil(Math.max(10, ...dishes.map((d) => d.price))), [dishes]);
   const maxPrice = maxPriceSetting ?? ceiling;
@@ -32,18 +57,28 @@ export function EatSearch({ dishes }: { dishes: Dish[] }) {
         if (restaurantId !== null && d.restaurantId !== restaurantId) return false;
         if (cuisine && cuisineLabel(d.cuisine) !== cuisine) return false;
         if (d.price > maxPrice) return false;
+        if (withinMiles !== null) {
+          const miles = distanceTo(d);
+          if (miles === null || miles > withinMiles) return false;
+        }
         const text = `${d.name} ${d.section} ${d.description ?? ""}`.toLowerCase();
         return words.every((w) => text.includes(w));
       })
-      .sort((a, b) => (sort === "low" ? a.price - b.price : b.price - a.price));
-  }, [dishes, query, cuisine, restaurantId, maxPrice, sort]);
+      .sort((a, b) => {
+        if (sort === "near") return (distanceTo(a) ?? 1e9) - (distanceTo(b) ?? 1e9) || a.price - b.price;
+        return sort === "low" ? a.price - b.price : b.price - a.price;
+      });
+    // distanceTo only depends on home
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dishes, query, cuisine, restaurantId, maxPrice, sort, withinMiles, home]);
 
-  const filtersOn = query || cuisine || restaurantId !== null || maxPriceSetting !== null;
+  const filtersOn = query || cuisine || restaurantId !== null || maxPriceSetting !== null || withinMiles !== null;
   function reset() {
     setQuery("");
     setCuisine(null);
     setRestaurantId(null);
     setMaxPrice(null);
+    setWithinMiles(null);
     setShown(PAGE);
   }
 
@@ -64,12 +99,13 @@ export function EatSearch({ dishes }: { dishes: Dish[] }) {
         />
         <select
           value={sort}
-          onChange={(e) => setSort(e.target.value as "low" | "high")}
+          onChange={(e) => setSort(e.target.value as "low" | "high" | "near")}
           aria-label="Sort"
           className="h-11 rounded-xl border border-line bg-surface px-3 text-sm"
         >
           <option value="low">Cheapest first</option>
           <option value="high">Priciest first</option>
+          {home && <option value="near">Nearest first</option>}
         </select>
       </div>
 
@@ -134,6 +170,21 @@ export function EatSearch({ dishes }: { dishes: Dish[] }) {
             className="w-28 accent-[var(--accent)] sm:w-36"
           />
         </label>
+        {home && (
+          <select
+            value={withinMiles ?? ""}
+            onChange={(e) => setWithinMiles(e.target.value ? Number(e.target.value) : null)}
+            aria-label="Distance"
+            className="h-10 rounded-full border border-line bg-surface px-3"
+          >
+            <option value="">Any distance</option>
+            {[1, 3, 5, 10, 20].map((m) => (
+              <option key={m} value={m}>
+                Within {m} mi
+              </option>
+            ))}
+          </select>
+        )}
         {filtersOn && (
           <button type="button" onClick={reset} className="font-medium text-accent hover:underline">
             Clear
@@ -144,6 +195,15 @@ export function EatSearch({ dishes }: { dishes: Dish[] }) {
       <p className="text-sm text-muted">
         {results.length.toLocaleString()} {results.length === 1 ? "dish" : "dishes"}
         {query && <> matching &ldquo;{query}&rdquo;</>}
+        {signedIn !== null && !home && (
+          <>
+            {" · "}
+            <Link href={signedIn ? "/account" : "/login"} className="font-medium text-accent hover:underline">
+              {signedIn ? "Add your address" : "Sign in and add your address"}
+            </Link>{" "}
+            to see how far each place is.
+          </>
+        )}
       </p>
 
       {results.length === 0 ? (
@@ -165,6 +225,7 @@ export function EatSearch({ dishes }: { dishes: Dish[] }) {
                     d.restaurant
                   )}
                   {d.section && <span className="text-muted"> · {d.section}</span>}
+                  {distanceTo(d) !== null && <span className="text-muted"> · {distanceTo(d)!.toFixed(1)} mi</span>}
                 </p>
                 {d.description && <p className="mt-0.5 line-clamp-2 text-xs text-muted">{d.description}</p>}
               </div>

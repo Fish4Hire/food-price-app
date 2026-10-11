@@ -177,6 +177,12 @@ create table if not exists profiles (
     updated_at  timestamptz not null default now()
 );
 
+-- Optional home address (added 2026-10-12), for distances to restaurants and stores.
+-- Private like home_zip: only the user can read it (rules below).
+alter table profiles add column if not exists home_address text;
+alter table profiles add column if not exists home_lat double precision;
+alter table profiles add column if not exists home_lon double precision;
+
 alter table profiles enable row level security;
 
 -- Each person can see, create and change only their own profile. Visitors get nothing.
@@ -263,7 +269,7 @@ grant select, insert, update, delete on shopping_lists, list_items to authentica
 -- ---------------------------------------------------------------------------
 -- Restaurants and menus (added 2026-10-12). Restaurants are rows in locations
 -- with kind = 'restaurant' (and tracking = 'restaurant', so grocery pages never
--- show them). Menu data is private for now: only app owners can read it.
+-- show them). Menus are public (Eat out tab); app_owners is kept for owner-only tools.
 -- ---------------------------------------------------------------------------
 alter table locations add column if not exists website  text;
 alter table locations add column if not exists cuisine  text;
@@ -311,28 +317,29 @@ create trigger menu_prices_append_only
 
 alter table menu_items  enable row level security;
 alter table menu_prices enable row level security;
-revoke all on menu_items, menu_prices from anon;
-grant select on menu_items, menu_prices to authenticated;
+-- Restaurant menus come from restaurants' own public websites and are shown to
+-- everyone on the Eat out tab (changed 2026-10-12; previously owners only).
+grant select on menu_items, menu_prices to anon, authenticated;
 drop policy if exists "owners read" on menu_items;
 drop policy if exists "owners read" on menu_prices;
-create policy "owners read" on menu_items for select to authenticated
-    using ((select is_app_owner()));
-create policy "owners read" on menu_prices for select to authenticated
-    using ((select is_app_owner()));
+drop policy if exists "public read" on menu_items;
+drop policy if exists "public read" on menu_prices;
+create policy "public read" on menu_items  for select using (true);
+create policy "public read" on menu_prices for select using (true);
 
--- Each dish's most recent price, with its restaurant. security_invoker means the
--- owners-only rules on menu_items and menu_prices still apply.
+-- Each dish's most recent price, with its restaurant (public, for the Eat out tab).
 drop view if exists latest_menu_prices;
 create view latest_menu_prices with (security_invoker = true) as
 select distinct on (p.menu_item_id)
     i.id as menu_item_id, i.name, i.section, i.description,
     l.id as location_id, l.name as restaurant, l.cuisine, l.address_line1, l.website, l.menu_url,
+    l.latitude, l.longitude,
     p.price, p.source, p.fetched_at
 from menu_prices p
 join menu_items i on i.id = p.menu_item_id
 join locations l on l.id = i.location_id
 order by p.menu_item_id, p.fetched_at desc;
-grant select on latest_menu_prices to authenticated;
+grant select on latest_menu_prices to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Benchmarks (added 2026-10-10): official average prices to compare against,
