@@ -22,7 +22,7 @@ BASE_URL = "https://api.kroger.com"
 TOKEN_CACHE = Path(__file__).parent / ".kroger_token.json"
 
 # Safety cap on API calls for a single run (daily limits are 10,000 / 1,600).
-MAX_CALLS_PER_RUN = 400
+MAX_CALLS_PER_RUN = 3000
 api_calls = 0
 
 
@@ -76,14 +76,17 @@ def get_token():
     return data["access_token"]
 
 
-def find_nearest_stores(token, zip_code, limit, chain=None):
+def find_nearest_stores(token, zip_code, limit, chain=None, radius_miles=None):
     """
     Return the stores closest to a ZIP code (Kroger sorts them by distance).
     chain limits results to one banner, e.g. "KROGER", "RALPHS" or "KINGSOOPERS".
+    radius_miles limits how far away they can be (Kroger allows up to 100).
     """
     params = {"filter.zipCode.near": zip_code, "filter.limit": limit}
     if chain:
         params["filter.chain"] = chain
+    if radius_miles:
+        params["filter.radiusInMiles"] = radius_miles
     data = call_api(
         "GET",
         "/v1/locations",

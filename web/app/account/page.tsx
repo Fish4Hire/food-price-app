@@ -80,7 +80,10 @@ async function NearbyStores({ zip }: { zip: string }) {
       </section>
     );
   }
-  const tracked = new Set((await getPriceData()).stores.filter((s) => s.metro).map((s) => s.external_id));
+  const data = await getPriceData();
+  const active = new Set(data.listings.map((l) => l.location_id));
+  const tracked = new Set(data.stores.filter((s) => s.metro && active.has(s.id)).map((s) => s.external_id));
+  const anyTracked = stores.some((s) => tracked.has(s.locationId));
 
   return (
     <section className="rounded-2xl border border-line bg-surface p-6">
@@ -92,7 +95,11 @@ async function NearbyStores({ zip }: { zip: string }) {
         </p>
       ) : (
         <>
-          <p className="mt-1 text-sm text-ink-2">Closest first. Soon you&apos;ll see prices for these on the home page.</p>
+          <p className="mt-1 text-sm text-ink-2">
+            {anyTracked
+              ? "Closest first. The home page shows prices for the tracked store nearest you."
+              : `Closest first. We'll start checking prices at ${stores[0].name} each morning; they should appear on the home page after the next check.`}
+          </p>
           <ul className="mt-4 divide-y divide-line">
             {stores.map((store) => (
               <li key={store.locationId} className="flex items-start justify-between gap-4 py-3">

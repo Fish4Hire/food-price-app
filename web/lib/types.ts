@@ -8,6 +8,7 @@ export type Store = {
   city: string | null;
   zip_code: string | null;
   metro: string | null; // e.g. "Houston, TX"
+  tracking: "featured" | "user"; // featured cities are public; user areas are shown only to nearby users
 };
 
 /** A city and the stores we track there. */
@@ -83,6 +84,13 @@ export type DashboardItem = {
   offers: Record<number, Offer>;      // by store id
   history: Record<number, Point[]>;   // by store id, oldest first
   benchmark: Benchmark | null;         // U.S. average, if the BLS tracks this item
+};
+
+/** Prices for a user's own area (stores added for their home ZIP), sent only to them. */
+export type DashboardArea = {
+  metro: Metro;
+  stores: Store[];
+  items: Pick<DashboardItem, "slug" | "offers" | "history">[];
 };
 
 export type DashboardModel = {

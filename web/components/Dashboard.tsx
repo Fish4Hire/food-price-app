@@ -25,7 +25,22 @@ const SORTS: { value: Sort; label: string }[] = [
 ];
 
 export function Dashboard({ model }: { model: DashboardModel }) {
-  const { stores, metros, items } = model;
+  // Who's visiting (fetched after load). Users near a store we collect just for
+  // their area get that area's prices, which are merged into the public ones.
+  const [personal, setPersonal] = useState<Personalization | null>(null);
+  const area = personal?.status === "tracked" ? (personal.area ?? null) : null;
+  const stores = useMemo(() => (area ? [...model.stores, ...area.stores] : model.stores), [model.stores, area]);
+  const metros = useMemo(() => (area ? [...model.metros, area.metro] : model.metros), [model.metros, area]);
+  const items = useMemo(() => {
+    if (!area) return model.items;
+    return model.items.map((item) => {
+      const extra = area.items.find((a) => a.slug === item.slug);
+      return extra
+        ? { ...item, offers: { ...item.offers, ...extra.offers }, history: { ...item.history, ...extra.history } }
+        : item;
+    });
+  }, [model.items, area]);
+
   const categories = useMemo(() => [...new Set(items.map((i) => i.category))], [items]);
   const priceCeiling = useMemo(() => {
     const prices = items.flatMap((i) => Object.values(i.offers).map((o) => o.price));
@@ -37,12 +52,12 @@ export function Dashboard({ model }: { model: DashboardModel }) {
   const [category, setCategory] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [saleOnly, setSaleOnly] = useState(false);
-  const [maxPrice, setMaxPrice] = useState(priceCeiling);
+  const [maxPriceSetting, setMaxPrice] = useState<number | null>(null); // null = no limit
+  const maxPrice = maxPriceSetting ?? priceCeiling;
   const [sort, setSort] = useState<Sort>("category");
 
   // After the page loads, ask who this is and jump to their home city
   // (unless they've already picked a city themselves).
-  const [personal, setPersonal] = useState<Personalization | null>(null);
   const pickedCity = useRef(false);
   useEffect(() => {
     let cancelled = false;
@@ -143,7 +158,7 @@ export function Dashboard({ model }: { model: DashboardModel }) {
     setCategory(null);
     setSaleOnly(false);
     setQuery("");
-    setMaxPrice(priceCeiling);
+    setMaxPrice(null);
   }
 
   return (
@@ -555,8 +570,8 @@ function PersonalBar({
     case "untracked":
       message = (
         <>
-          We found {personal.nearbyCount} stores near {personal.zip} (closest: {personal.nearestName}) but don&apos;t track
-          their prices yet. Showing {metroName} for now.
+          We found {personal.nearbyCount} stores near {personal.zip} (closest: {personal.nearestName}). Their prices
+          should appear after the next morning&apos;s price check. Showing {metroName} for now.
         </>
       );
       break;

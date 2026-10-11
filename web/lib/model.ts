@@ -71,7 +71,21 @@ export function basketVsBenchmark(items: DashboardItem[], choice: StoreChoice) {
   return count ? { change: (ours - average) / average, count } : null;
 }
 
-export function buildDashboard({ stores, products, listings, history, benchmarks }: PriceData): DashboardModel {
+/**
+ * Stores to show: in a city, with prices from the last 3 days, of the given kind.
+ * The public pages use "featured" only, so they never reveal where users live.
+ */
+export function visibleStores(data: PriceData, tracking: Store["tracking"] = "featured"): Store[] {
+  const active = new Set(data.listings.map((listing) => listing.location_id));
+  return data.stores.filter((s) => s.metro && s.tracking === tracking && active.has(s.id));
+}
+
+/** The dashboard for a set of stores (by default, the public featured cities). */
+export function buildDashboard(data: PriceData, stores: Store[] = visibleStores(data)): DashboardModel {
+  const storeIds = new Set(stores.map((s) => s.id));
+  const listings = data.listings.filter((l) => storeIds.has(l.location_id));
+  const history = data.history.filter((h) => storeIds.has(h.location_id));
+  const { products, benchmarks } = data;
   const items: DashboardItem[] = products.map((product) => {
     // Listings arrive sorted by price per unit, so the first per store is the cheapest.
     const offers: Record<number, Offer> = {};

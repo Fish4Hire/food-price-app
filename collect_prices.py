@@ -1,8 +1,13 @@
 """
 Collect Kroger prices for the basket (see basket.py) and save them to Supabase.
 
-For the stores nearest each city in METROS, searches each basket item and
-saves only listings that match a basket item's rules:
+Collects two kinds of stores:
+  - featured: the stores nearest each city in METROS (shown to everyone)
+  - user:     the nearest store to each user's saved home ZIP, when no store we
+              already collect is nearby (shown only to users who live near it)
+
+For each store it searches every basket item and saves only listings that match
+a basket item's rules:
   - each store            -> locations   (added once, refreshed on later runs)
   - each matching listing -> store_items (added once, refreshed, linked to its product)
   - each price we see     -> prices      (a NEW row every run, never overwritten)
@@ -32,8 +37,12 @@ METROS = [
 ]
 # 50 is Kroger's max per search, and costs the same single API call as 10.
 ITEMS_PER_SEARCH = 50
-# API calls per run: 1 token + 1 lookup per city + (basket items x stores)
-# = 1 + 7 + 21 x 15 = about 323, well under Kroger's 10,000 a day.
+
+# Budget for stores added for users. Each store costs ~21 product calls a day
+# (Kroger allows 10,000), and each ZIP costs 1 location lookup (Kroger allows 1,600).
+MAX_STORES = 100           # featured + user stores, in total: ~2,100 product calls a day
+MAX_USER_ZIPS = 500        # ZIPs looked up per run
+USER_RADIUS_MILES = 25     # how far a "nearby" store can be
 
 
 def is_real_store(store):
@@ -49,7 +58,7 @@ def is_real_store(store):
     )
 
 
-def location_row(store, metro):
+def location_row(store, metro, tracking="featured"):
     """Convert a Kroger store into a row for the locations table."""
     addr = store.get("address", {})
     geo = store.get("geolocation", {})
@@ -64,6 +73,7 @@ def location_row(store, metro):
         "state": addr.get("state"),
         "zip_code": addr.get("zipCode"),
         "metro": metro,
+        "tracking": tracking,
         "latitude": geo.get("latitude"),
         "longitude": geo.get("longitude"),
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -107,9 +117,9 @@ def price_row(item, store_item_id, location_id, search_term, fetched_at):
     }
 
 
-def collect_store(client, token, store, metro, slug_to_id):
+def collect_store(client, token, store, metro, slug_to_id, tracking="featured"):
     """Search every basket item at one store and save the matching prices."""
-    location_id = db.upsert_location(client, location_row(store, metro))
+    location_id = db.upsert_location(client, location_row(store, metro, tracking))
 
     # external_id -> (listing row, Kroger item, search term, fetch time).
     # Keyed so a listing found by two searches is only saved once.
@@ -142,23 +152,76 @@ def collect_store(client, token, store, metro, slug_to_id):
           f"covering {len(matched_items)} of {len(basket.BASKET)} basket items")
 
 
+def featured_stores(token):
+    """The nearest real stores to each featured city: [(store, city name), ...]."""
+    picked = []
+    for metro in METROS:
+        # Ask for a few extra in case some are placeholders, then keep the nearest real ones.
+        nearby = kroger_api.find_nearest_stores(token, metro["zip"], metro["stores"] + 3, metro["chain"])
+        stores = [s for s in nearby if is_real_store(s)][: metro["stores"]]
+        if not stores:
+            print(f"  No {metro['chain']} stores found near {metro['zip']} ({metro['name']})")
+        picked += [(store, metro["name"]) for store in stores]
+    return picked
+
+
+def user_stores(client, token, covered_ids, room):
+    """
+    Stores to add for users' home ZIPs: for each ZIP with no collected store nearby,
+    its nearest store. Stores needed by more ZIPs come first; at most `room` stores.
+    Returns [(store, area name), ...]. ZIPs are private, so this never prints them.
+    """
+    zips = db.user_home_zips(client)[:MAX_USER_ZIPS]
+    chosen = {}  # locationId -> {"store": ..., "zips": count}
+    no_stores = 0
+    for zip_code in zips:
+        nearby = [
+            s for s in kroger_api.find_nearest_stores(token, zip_code, 8, radius_miles=USER_RADIUS_MILES)
+            if is_real_store(s)
+        ]
+        if not nearby:
+            no_stores += 1
+            continue
+        already = next((s["locationId"] for s in nearby if s["locationId"] in covered_ids or s["locationId"] in chosen), None)
+        if already:
+            if already in chosen:
+                chosen[already]["zips"] += 1
+            continue
+        chosen[nearby[0]["locationId"]] = {"store": nearby[0], "zips": 1}
+
+    ranked = sorted(chosen.values(), key=lambda c: -c["zips"])
+    kept = ranked[:room]
+    print(f"User areas: {len(zips)} ZIPs, {len(chosen)} need a new store, {no_stores} have no stores nearby."
+          + (f" Over budget: {len(ranked) - len(kept)} store(s) waiting." if len(ranked) > len(kept) else ""))
+    return [(c["store"], area_name(c["store"])) for c in kept]
+
+
+def area_name(store):
+    """'Phoenix, AZ' style name for a user-area store, from its address."""
+    addr = store.get("address", {})
+    return f"{addr.get('city', '').title()}, {addr.get('state', '')}"
+
+
 def main():
     load_dotenv()
     client = db.get_client()
     slug_to_id = basket.sync(client)   # make sure the basket is in the database
     token = kroger_api.get_token()
 
-    for metro in METROS:
-        print(f"\n{metro['name']}")
-        # Ask for a few extra in case some are placeholders, then keep the nearest real ones.
-        nearby = kroger_api.find_nearest_stores(token, metro["zip"], metro["stores"] + 3, metro["chain"])
-        stores = [s for s in nearby if is_real_store(s)][: metro["stores"]]
-        if not stores:
-            print(f"  No {metro['chain']} stores found near {metro['zip']}")
-        for store in stores:
-            collect_store(client, token, store, metro["name"], slug_to_id)
+    featured = featured_stores(token)
+    covered = {store["locationId"] for store, _ in featured}
+    users = user_stores(client, token, covered, room=max(0, MAX_STORES - len(featured)))
 
-    print(f"\nDone. Kroger API calls this run: {kroger_api.api_calls}")
+    for tracking, group in (("featured", featured), ("user", users)):
+        current = None
+        for store, metro in group:
+            if metro != current:
+                print(f"\n{metro}" + (" (user area)" if tracking == "user" else ""))
+                current = metro
+            collect_store(client, token, store, metro, slug_to_id, tracking)
+
+    print(f"\nDone. {len(featured)} featured + {len(users)} user-area stores. "
+          f"Kroger API calls this run: {kroger_api.api_calls}")
 
 
 if __name__ == "__main__":

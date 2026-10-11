@@ -4,14 +4,17 @@
 import { getCurrentUser } from "./auth";
 import { getPriceData } from "./data";
 import { getNearbyStores } from "./kroger";
+import { buildDashboard, visibleStores } from "./model";
 import { getProfile } from "./profile";
+import type { DashboardArea } from "./types";
 
 export type Personalization =
   | { status: "signed-out" }
   | { status: "no-zip" }
-  // Some stores near their ZIP are ones we track: show that city, nearest store first.
-  | { status: "tracked"; zip: string; metro: string; nearestStoreId: number; nearestStoreName: string }
-  // There are Kroger-family stores near them, but we don't track any of them yet.
+  // A store near their ZIP has prices. `area` is included when it's a store we
+  // collect just for nearby users (not one of the public featured cities).
+  | { status: "tracked"; zip: string; metro: string; nearestStoreId: number; nearestStoreName: string; area?: DashboardArea }
+  // There are Kroger-family stores near them, but no prices yet (added at the next morning's check).
   | { status: "untracked"; zip: string; nearbyCount: number; nearestName: string }
   // No Kroger-family stores within 25 miles at all.
   | { status: "none-nearby"; zip: string };
@@ -25,18 +28,36 @@ export async function getPersonalization(): Promise<Personalization> {
   const nearby = await getNearbyStores(homeZip); // nearest first
   if (!nearby.length) return { status: "none-nearby", zip: homeZip };
 
-  const { stores } = await getPriceData();
+  const data = await getPriceData();
+  const featured = visibleStores(data, "featured");
+  const userAreas = visibleStores(data, "user");
+
   for (const candidate of nearby) {
-    const tracked = stores.find((s) => s.external_id === candidate.locationId && s.metro);
-    if (tracked) {
-      return {
-        status: "tracked",
-        zip: homeZip,
-        metro: tracked.metro!,
-        nearestStoreId: tracked.id,
-        nearestStoreName: tracked.name,
-      };
-    }
+    const store = [...featured, ...userAreas].find((s) => s.external_id === candidate.locationId);
+    if (!store) continue;
+    const result = {
+      status: "tracked" as const,
+      zip: homeZip,
+      metro: store.metro!,
+      nearestStoreId: store.id,
+      nearestStoreName: store.name,
+    };
+    if (store.tracking === "featured") return result;
+
+    // A user-area store: send this person their area's prices (and only theirs).
+    const areaStores = userAreas.filter((s) => s.metro === store.metro);
+    const model = buildDashboard(data, areaStores);
+    const featuredNames = new Set(featured.map((s) => s.metro));
+    const name = featuredNames.has(store.metro) ? `${store.metro} (near you)` : store.metro!;
+    return {
+      ...result,
+      metro: name,
+      area: {
+        metro: { name, storeIds: areaStores.map((s) => s.id) },
+        stores: model.stores.map((s) => ({ ...s, metro: name })),
+        items: model.items.map(({ slug, offers, history }) => ({ slug, offers, history })),
+      },
+    };
   }
   return { status: "untracked", zip: homeZip, nearbyCount: nearby.length, nearestName: nearby[0].name };
 }

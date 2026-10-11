@@ -161,6 +161,11 @@ grant select on latest_listing_prices, latest_basket_prices, basket_price_histor
 -- ---------------------------------------------------------------------------
 alter table locations add column if not exists metro text;
 
+-- Why we collect a store (added 2026-10-11):
+--   'featured' = one of the fixed cities shown to everyone on the home page
+--   'user'     = added because a user saved a home ZIP near it; shown only to that user
+alter table locations add column if not exists tracking text not null default 'featured';
+
 -- ---------------------------------------------------------------------------
 -- Profiles (added 2026-10-11): one private row per signed-in user.
 -- Users are created by Supabase Auth (auth.users); deleting a user deletes this row.

@@ -23,6 +23,25 @@ def get_client():
     return create_client(url, key)
 
 
+def user_home_zips(client):
+    """Every distinct home ZIP users have saved (needs the secret key; profiles are private)."""
+    zips, start = set(), 0
+    while True:
+        page = (
+            client.table("profiles")
+            .select("home_zip")
+            .not_.is_("home_zip", "null")
+            .order("id")
+            .range(start, start + 999)
+            .execute()
+            .data
+        )
+        zips.update(row["home_zip"] for row in page)
+        if len(page) < 1000:
+            return sorted(zips)
+        start += 1000
+
+
 def upsert_location(client, row):
     """Insert a store, or update it if we already have it. Returns its database id."""
     result = (

@@ -1,14 +1,16 @@
 import { cacheLife } from "next/cache";
 import type { Metadata } from "next";
 import { getPriceData } from "@/lib/data";
-import { groupMetros } from "@/lib/model";
+import { groupMetros, visibleStores } from "@/lib/model";
 
 export const metadata: Metadata = { title: "How it works" };
 
 export default async function AboutPage() {
   "use cache";
   cacheLife("hours");
-  const { stores, products } = await getPriceData();
+  const data = await getPriceData();
+  const { products } = data;
+  const stores = visibleStores(data);
   const categories = [...new Set(products.map((p) => p.category))];
   const metros = groupMetros(stores);
 

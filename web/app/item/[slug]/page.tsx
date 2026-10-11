@@ -6,7 +6,7 @@ import { ItemChart } from "@/components/ItemChart";
 import type { ChartSeries } from "@/components/PriceChart";
 import { getPriceData } from "@/lib/data";
 import { money, perUnit, shortDay, shortStore } from "@/lib/format";
-import { benchmarkOn, buildBenchmark, cheapestPerDay, groupMetros } from "@/lib/model";
+import { benchmarkOn, buildBenchmark, cheapestPerDay, groupMetros, visibleStores } from "@/lib/model";
 import type { Listing, Metro, Point } from "@/lib/types";
 
 export async function generateStaticParams() {
@@ -46,7 +46,9 @@ async function ItemContent({ slug }: { slug: string }) {
   "use cache";
   cacheLife("hours");
 
-  const { stores, products, listings, history, benchmarks } = await getPriceData();
+  const data = await getPriceData();
+  const { products, listings, history, benchmarks } = data;
+  const stores = visibleStores(data);
   const product = products.find((p) => p.slug === slug);
   if (!product) notFound();
   const unit = product.unit_label;
@@ -54,8 +56,9 @@ async function ItemContent({ slug }: { slug: string }) {
   const metroOf = (storeId: number) => metros.find((m) => m.storeIds.includes(storeId))?.name ?? "";
   const storeLabel = (storeId: number) => shortStore(stores.find((s) => s.id === storeId)?.name ?? "");
 
-  const itemListings = listings.filter((l) => l.product_id === product.id);
-  const itemHistory = history.filter((h) => h.product_id === product.id);
+  const shown = new Set(stores.map((s) => s.id));
+  const itemListings = listings.filter((l) => l.product_id === product.id && shown.has(l.location_id));
+  const itemHistory = history.filter((h) => h.product_id === product.id && shown.has(h.location_id));
   const benchmark = buildBenchmark(benchmarks, product.id);
 
   // One chart line per city: its cheapest store each day.
