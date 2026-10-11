@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { money, percent, perUnit, shortStore } from "@/lib/format";
 import {
   basketCost,
@@ -10,6 +10,7 @@ import {
   pickOffer,
   weeklyChange,
 } from "@/lib/model";
+import type { Personalization } from "@/lib/personal";
 import type { DashboardItem, DashboardModel } from "@/lib/types";
 import { CostBars } from "./CostBars";
 import { Sparkline } from "./Sparkline";
@@ -39,6 +40,28 @@ export function Dashboard({ model }: { model: DashboardModel }) {
   const [maxPrice, setMaxPrice] = useState(priceCeiling);
   const [sort, setSort] = useState<Sort>("category");
 
+  // After the page loads, ask who this is and jump to their home city
+  // (unless they've already picked a city themselves).
+  const [personal, setPersonal] = useState<Personalization | null>(null);
+  const pickedCity = useRef(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/me")
+      .then((response) => response.json() as Promise<Personalization>)
+      .then((result) => {
+        if (cancelled) return;
+        setPersonal(result);
+        if (result.status === "tracked" && !pickedCity.current) {
+          setMetroName(result.metro);
+          setStoreId("all");
+        }
+      })
+      .catch(() => {}); // keep the default view
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // The stores being compared: every store in the chosen city, or just one.
   const metro = metros.find((m) => m.name === metroName) ?? metros[0];
   const metroStores = stores.filter((s) => metro.storeIds.includes(s.id));
@@ -58,6 +81,7 @@ export function Dashboard({ model }: { model: DashboardModel }) {
   });
 
   function chooseMetro(name: string) {
+    pickedCity.current = true;
     setMetroName(name);
     setStoreId("all");
   }
@@ -123,7 +147,9 @@ export function Dashboard({ model }: { model: DashboardModel }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+      <PersonalBar personal={personal} metroName={metro.name} onGoHome={chooseMetro} />
+
       {/* Hero */}
       <section className="grid gap-4 lg:grid-cols-5">
         <div className="rounded-2xl border border-line bg-surface p-6 sm:p-8 lg:col-span-3">
@@ -490,5 +516,96 @@ function SearchIcon() {
       <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="2" />
       <path d="m14 14 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
+  );
+}
+
+/**
+ * One line at the top saying whose prices you're looking at, with a nudge to
+ * sign in or save a ZIP. Always the same height, so the page doesn't jump.
+ */
+function PersonalBar({
+  personal,
+  metroName,
+  onGoHome,
+}: {
+  personal: Personalization | null;
+  metroName: string;
+  onGoHome: (metro: string) => void;
+}) {
+  const linkClass = "font-medium text-accent hover:underline";
+  let message: React.ReactNode;
+
+  switch (personal?.status) {
+    case "tracked":
+      message =
+        personal.metro === metroName ? (
+          <>
+            Near <strong className="font-medium text-ink">{personal.zip}</strong>: your closest tracked store is{" "}
+            {personal.nearestStoreName}.
+          </>
+        ) : (
+          <>
+            Viewing {metroName}.{" "}
+            <button type="button" className={linkClass} onClick={() => onGoHome(personal.metro)}>
+              Back to stores near {personal.zip}
+            </button>
+          </>
+        );
+      break;
+    case "untracked":
+      message = (
+        <>
+          We found {personal.nearbyCount} stores near {personal.zip} (closest: {personal.nearestName}) but don&apos;t track
+          their prices yet. Showing {metroName} for now.
+        </>
+      );
+      break;
+    case "none-nearby":
+      message = (
+        <>
+          We don&apos;t cover stores near {personal.zip} yet. More chains are on the way. Showing {metroName} for now.
+        </>
+      );
+      break;
+    case "no-zip":
+      message = (
+        <>
+          Showing {metroName}.{" "}
+          <Link href="/account" className={linkClass}>
+            Save your home ZIP
+          </Link>{" "}
+          to see prices at stores near you.
+        </>
+      );
+      break;
+    case "signed-out":
+      message = (
+        <>
+          Showing {metroName}.{" "}
+          <Link href="/login" className={linkClass}>
+            Sign in
+          </Link>{" "}
+          and save your ZIP to see prices near you.
+        </>
+      );
+      break;
+    default:
+      message = <>Showing prices in {metroName}.</>;
+  }
+
+  return (
+    <p className="mb-4 flex min-h-6 items-start gap-2 text-sm text-ink-2">
+      <svg viewBox="0 0 20 20" className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden="true">
+        <path
+          d="M10 18s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        <circle cx="10" cy="8" r="2.2" fill="currentColor" />
+      </svg>
+      <span>{message}</span>
+    </p>
   );
 }
