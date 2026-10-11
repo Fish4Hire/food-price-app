@@ -192,6 +192,53 @@ revoke all on profiles from anon;
 grant select, insert, update on profiles to authenticated;
 
 -- ---------------------------------------------------------------------------
+-- Shopping lists (added 2026-10-11): private, one row per list and per item.
+-- An item is either a staple (a basket product: cheapest brand wins) or a
+-- specific Kroger product (exact item, by Kroger productId).
+-- ---------------------------------------------------------------------------
+create table if not exists shopping_lists (
+    id          bigint generated always as identity primary key,
+    user_id     uuid not null references auth.users(id) on delete cascade,
+    name        text not null default 'My list',
+    created_at  timestamptz not null default now(),
+    updated_at  timestamptz not null default now()
+);
+create index if not exists shopping_lists_user on shopping_lists (user_id);
+
+create table if not exists list_items (
+    id                 bigint generated always as identity primary key,
+    list_id            bigint not null references shopping_lists(id) on delete cascade,
+    product_id         bigint references products(id),   -- a staple, any brand
+    kroger_product_id  text,                              -- or one specific product
+    description        text not null,                     -- what to show, saved when added
+    brand              text,
+    size               text,
+    image_url          text,
+    quantity           integer not null default 1 check (quantity between 1 and 99),
+    added_at           timestamptz not null default now(),
+    check ((product_id is null) <> (kroger_product_id is null)),
+    unique (list_id, product_id),
+    unique (list_id, kroger_product_id)
+);
+create index if not exists list_items_list on list_items (list_id);
+
+alter table shopping_lists enable row level security;
+alter table list_items     enable row level security;
+
+-- People can only see and change their own lists, and the items on them.
+drop policy if exists "own lists" on shopping_lists;
+create policy "own lists" on shopping_lists for all to authenticated
+    using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+drop policy if exists "own list items" on list_items;
+create policy "own list items" on list_items for all to authenticated
+    using (exists (select 1 from shopping_lists l where l.id = list_id and l.user_id = (select auth.uid())))
+    with check (exists (select 1 from shopping_lists l where l.id = list_id and l.user_id = (select auth.uid())));
+
+revoke all on shopping_lists, list_items from anon;
+grant select, insert, update, delete on shopping_lists, list_items to authenticated;
+
+-- ---------------------------------------------------------------------------
 -- Benchmarks (added 2026-10-10): official average prices to compare against,
 -- e.g. the Bureau of Labor Statistics' monthly U.S. city average prices.
 -- Unlike prices, rows are updated in place, because the BLS revises its numbers.

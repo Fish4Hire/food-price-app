@@ -55,7 +55,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/" className="rounded-full px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink">
                 Prices
               </Link>
-              <Link href="/about" className="rounded-full px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink">
+              <Link href="/list" className="rounded-full px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink">
+                My list
+              </Link>
+              <Link href="/about" className="hidden rounded-full px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink sm:inline">
                 How it works
               </Link>
               {/* Reads the login, so it streams in without holding up the page */}

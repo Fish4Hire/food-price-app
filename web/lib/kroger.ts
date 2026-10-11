@@ -77,3 +77,54 @@ export async function getNearbyStores(zip: string, limit = 5): Promise<NearbySto
       zip: s.address.zipCode,
     }));
 }
+
+export type ProductResult = {
+  productId: string;
+  description: string;
+  brand: string | null;
+  size: string | null;
+  imageUrl: string | null;
+  price: number | null; // at the given store, if one was given
+  promo: number | null;
+};
+
+type KrogerProduct = {
+  productId: string;
+  description: string;
+  brand?: string;
+  images?: { perspective: string; featured?: boolean; sizes: { size: string; url: string }[] }[];
+  items?: { size?: string; price?: { regular?: number; promo?: number } }[];
+};
+
+/**
+ * Search Kroger's products. With a store's locationId, results include that
+ * store's prices. Cached for a few hours per search, to save API calls.
+ */
+export async function searchProducts(term: string, locationId: string | null, limit = 20): Promise<ProductResult[]> {
+  "use cache";
+  cacheLife("hours");
+
+  const params = new URLSearchParams({ "filter.term": term, "filter.limit": String(limit) });
+  if (locationId) params.set("filter.locationId", locationId);
+  const response = await fetch(`${BASE_URL}/v1/products?${params}`, {
+    headers: { Authorization: `Bearer ${await getToken()}` },
+  });
+  if (!response.ok) throw new Error(`Kroger product search failed: ${response.status}`);
+
+  const { data } = (await response.json()) as { data: KrogerProduct[] };
+  return data.map((p) => {
+    const item = p.items?.[0];
+    const image = p.images?.find((i) => i.featured) ?? p.images?.[0];
+    const regular = item?.price?.regular || null;
+    const promo = item?.price?.promo || null;
+    return {
+      productId: p.productId,
+      description: p.description,
+      brand: p.brand ?? null,
+      size: item?.size ?? null,
+      imageUrl: image?.sizes.find((s) => s.size === "medium")?.url ?? image?.sizes[0]?.url ?? null,
+      price: regular,
+      promo: promo && regular && promo < regular ? promo : null,
+    };
+  });
+}
