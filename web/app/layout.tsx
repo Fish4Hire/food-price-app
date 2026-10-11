@@ -73,8 +73,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 
         <footer className="border-t border-line">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-4 py-6 text-sm text-muted sm:flex-row sm:justify-between sm:px-6">
-            <p>Prices from the Kroger public API, checked every morning.</p>
-            <p>Shelf prices can differ from what you pay in store.</p>
+            <p>Prices from the Kroger public API, checked every morning. Shelf prices can differ in store.</p>
+            <p className="flex gap-4">
+              <Link href="/privacy" className="hover:text-ink">
+                Privacy
+              </Link>
+              <Link href="/terms" className="hover:text-ink">
+                Terms
+              </Link>
+              <Link href="/about" className="hover:text-ink">
+                How it works
+              </Link>
+            </p>
           </div>
         </footer>
       </body>

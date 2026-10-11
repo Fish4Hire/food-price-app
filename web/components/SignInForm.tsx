@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { sendSignInLink, type SignInState } from "@/app/auth/actions";
 
@@ -44,6 +45,17 @@ export function SignInForm() {
       >
         {pending ? "Sending…" : "Email me a sign-in link"}
       </button>
+      <p className="text-center text-xs text-muted">
+        By continuing, you agree to our{" "}
+        <Link href="/terms" className="underline hover:text-ink">
+          Terms
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="underline hover:text-ink">
+          Privacy Policy
+        </Link>
+        .
+      </p>
     </form>
   );
 }
