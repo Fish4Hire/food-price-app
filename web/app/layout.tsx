@@ -44,21 +44,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col font-sans">
         <header className="border-b border-line bg-surface/80 backdrop-blur supports-[backdrop-filter]:bg-surface/70 sticky top-0 z-20">
           <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-            <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
+            <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap font-semibold tracking-tight">
               <BasketMark className="h-7 w-7" />
-              <span className="text-lg">Cheaper Eats</span>
-              <span className="hidden text-sm font-normal text-muted sm:inline">
+              <span className="text-base sm:text-lg">Cheaper Eats</span>
+              <span className="hidden text-sm font-normal text-muted lg:inline">
                 Grocery prices, compared
               </span>
             </Link>
-            <nav className="flex items-center gap-1 text-sm">
-              <Link href="/" className="rounded-full px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink">
+            <nav className="flex items-center gap-0.5 whitespace-nowrap text-sm sm:gap-1">
+              <Link href="/" className="rounded-full px-2 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink sm:px-3">
                 Prices
               </Link>
-              <Link href="/eat" className="rounded-full px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink">
+              <Link href="/eat" className="rounded-full px-2 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink sm:px-3">
                 Eat out
               </Link>
-              <Link href="/list" className="rounded-full px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink">
+              <Link href="/list" className="rounded-full px-2 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink sm:px-3">
                 My list
               </Link>
               <Link href="/about" className="hidden rounded-full px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink sm:inline">
