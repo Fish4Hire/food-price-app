@@ -185,18 +185,20 @@ export function weeklyChange(points: Point[]): number | null {
 }
 
 /**
- * The best deals at the chosen stores: biggest percentage off first. A product on
- * sale at several of the stores is listed once, at its lowest price.
+ * The best deals at the chosen stores: biggest percentage off first, and only the
+ * best deal per basket item, so one brand-wide sale can't fill the whole list.
  */
 export function topDeals(deals: Deal[], choice: StoreChoice, limit = 6): Deal[] {
-  const best = new Map<number, Deal>();
-  for (const deal of deals) {
-    if (!choice.includes(deal.storeId)) continue;
-    const current = best.get(deal.storeItemId);
-    if (!current || deal.price < current.price) best.set(deal.storeItemId, deal);
-  }
   const off = (d: Deal) => (d.regular - d.price) / d.regular;
-  return [...best.values()].filter((d) => off(d) >= 0.05).sort((a, b) => off(b) - off(a)).slice(0, limit);
+  const best = new Map<string, Deal>(); // basket item slug -> its best deal
+  for (const deal of deals) {
+    if (!choice.includes(deal.storeId) || off(deal) < 0.05) continue;
+    const current = best.get(deal.slug);
+    if (!current || off(deal) > off(current) || (off(deal) === off(current) && deal.price < current.price)) {
+      best.set(deal.slug, deal);
+    }
+  }
+  return [...best.values()].sort((a, b) => off(b) - off(a)).slice(0, limit);
 }
 
 /** What one week's basket costs: price per unit x basket quantity, summed. */
