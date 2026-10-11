@@ -16,6 +16,7 @@ KROGER_CLIENT_ID=
 KROGER_CLIENT_SECRET=
 SUPABASE_URL=
 SUPABASE_KEY=
+SUPABASE_DB_URL=   # Session pooler connection string; used by run_sql.py to apply schema.sql
 ```
 
 ## Kroger API (specs in /docs: products.json, location.json, authorization.json)
