@@ -78,6 +78,33 @@ def list_products_by_zip(client):
         start += 1000
 
 
+def restaurants_with_menus(client):
+    """Restaurants we read menus for: id, name and menu_url."""
+    return (
+        client.table("locations").select("id, name, menu_url")
+        .eq("kind", "restaurant").not_.is_("menu_url", "null").order("id").execute().data
+    )
+
+
+def upsert_menu_items(client, rows):
+    """Add dishes or refresh ones we have. Returns {(section, name): id}."""
+    if not rows:
+        return {}
+    unique_rows = list({(r["section"], r["name"]): r for r in rows}.values())
+    result = (
+        client.table("menu_items")
+        .upsert(unique_rows, on_conflict="location_id,section,name")
+        .execute()
+    )
+    return {(r["section"], r["name"]): r["id"] for r in result.data}
+
+
+def insert_menu_prices(client, rows):
+    """Add dish prices. Always new rows; never changes old ones."""
+    if rows:
+        client.table("menu_prices").insert(rows).execute()
+
+
 def upsert_location(client, row):
     """Insert a store, or update it if we already have it. Returns its database id."""
     result = (

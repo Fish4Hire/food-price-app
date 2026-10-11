@@ -2,3 +2,4 @@ requests
 python-dotenv
 supabase
 psycopg[binary]
+beautifulsoup4

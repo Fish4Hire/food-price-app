@@ -261,6 +261,66 @@ revoke all on shopping_lists, list_items from anon;
 grant select, insert, update, delete on shopping_lists, list_items to authenticated;
 
 -- ---------------------------------------------------------------------------
+-- Restaurants and menus (added 2026-10-12). Restaurants are rows in locations
+-- with kind = 'restaurant' (and tracking = 'restaurant', so grocery pages never
+-- show them). Menu data is private for now: only app owners can read it.
+-- ---------------------------------------------------------------------------
+alter table locations add column if not exists website  text;
+alter table locations add column if not exists cuisine  text;
+alter table locations add column if not exists menu_url text;   -- the page we read the menu from
+
+create table if not exists app_owners (
+    user_id  uuid primary key references auth.users(id) on delete cascade
+);
+alter table app_owners enable row level security;
+revoke all on app_owners from anon, authenticated;
+
+-- "Is the signed-in user an owner?" Runs with owner rights so the list itself stays hidden.
+create or replace function is_app_owner() returns boolean
+language sql stable security definer set search_path = ''
+as $$ select exists (select 1 from public.app_owners where user_id = auth.uid()) $$;
+revoke all on function is_app_owner() from public, anon;
+grant execute on function is_app_owner() to authenticated;
+
+create table if not exists menu_items (
+    id           bigint generated always as identity primary key,
+    location_id  bigint not null references locations(id),
+    section      text not null default '',               -- e.g. 'Tacos' ('' if the menu has none)
+    name         text not null,
+    description  text,
+    first_seen   timestamptz not null default now(),
+    last_seen    timestamptz not null default now(),
+    unique (location_id, section, name)
+);
+
+create table if not exists menu_prices (
+    id            bigint generated always as identity primary key,
+    menu_item_id  bigint not null references menu_items(id),
+    price         numeric not null,
+    source        text not null,      -- 'restaurant_site' (later: 'delivery:doordash', ...)
+    source_url    text,
+    fetched_at    timestamptz not null
+);
+create index if not exists menu_prices_item_time on menu_prices (menu_item_id, fetched_at desc);
+
+-- Like grocery prices: append-only.
+drop trigger if exists menu_prices_append_only on menu_prices;
+create trigger menu_prices_append_only
+    before update or delete on menu_prices
+    for each row execute function prices_block_changes();
+
+alter table menu_items  enable row level security;
+alter table menu_prices enable row level security;
+revoke all on menu_items, menu_prices from anon;
+grant select on menu_items, menu_prices to authenticated;
+drop policy if exists "owners read" on menu_items;
+drop policy if exists "owners read" on menu_prices;
+create policy "owners read" on menu_items for select to authenticated
+    using ((select is_app_owner()));
+create policy "owners read" on menu_prices for select to authenticated
+    using ((select is_app_owner()));
+
+-- ---------------------------------------------------------------------------
 -- Benchmarks (added 2026-10-10): official average prices to compare against,
 -- e.g. the Bureau of Labor Statistics' monthly U.S. city average prices.
 -- Unlike prices, rows are updated in place, because the BLS revises its numbers.

@@ -1,0 +1,30 @@
+# Reads San Antonio restaurant menus every week (menus change rarely).
+# Polite by design: obeys each site's robots.txt and waits between requests.
+# Results: GitHub repo -> Actions tab.
+name: Collect menus
+
+on:
+  schedule:
+    - cron: "0 15 * * 0" # Sundays 15:00 UTC (10 AM in San Antonio)
+  workflow_dispatch: # adds a "Run workflow" button for running it by hand
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Read menus
+        run: python collect_menus.py
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
