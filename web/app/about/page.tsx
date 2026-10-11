@@ -1,6 +1,7 @@
 import { cacheLife } from "next/cache";
 import type { Metadata } from "next";
 import { getPriceData } from "@/lib/data";
+import { groupMetros } from "@/lib/model";
 
 export const metadata: Metadata = { title: "How it works" };
 
@@ -9,30 +10,42 @@ export default async function AboutPage() {
   cacheLife("hours");
   const { stores, products } = await getPriceData();
   const categories = [...new Set(products.map((p) => p.category))];
+  const metros = groupMetros(stores);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
       <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">How it works</h1>
       <p className="mt-3 text-lg text-ink-2">
-        Cheaper Eats tracks what everyday groceries cost in Houston, so you can see which store is cheapest and when prices move.
+        Cheaper Eats tracks what everyday groceries cost across U.S. cities, so you can see where prices are lowest, which
+        store is cheapest and when prices move.
       </p>
 
       <div className="mt-10 space-y-10">
         <Section title="Where the prices come from">
           <p>
-            Every morning a script asks the Kroger public API for current shelf prices, including sale prices, at the{" "}
-            {stores.length} Kroger stores nearest downtown Houston (ZIP 77002):
+            Every morning a script asks the Kroger public API for current shelf prices, including sale prices, at{" "}
+            {metros.reduce((count, m) => count + m.storeIds.length, 0)} stores in {metros.length} cities. Kroger runs stores under several names, such as King Soopers
+            in Denver, Ralphs in Los Angeles and QFC in Seattle.
           </p>
-          <ul className="mt-3 space-y-1">
-            {stores.map((s) => (
-              <li key={s.id} className="flex justify-between gap-4 border-b border-line py-2 last:border-b-0">
-                <span className="font-medium text-ink">{s.name}</span>
-                <span className="text-right text-muted">
-                  {s.address_line1}, {s.zip_code}
-                </span>
-              </li>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {metros.map((metro) => (
+              <div key={metro.name} className="rounded-xl border border-line bg-surface p-4">
+                <p className="text-sm font-semibold text-ink">{metro.name}</p>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {stores
+                    .filter((s) => metro.storeIds.includes(s.id))
+                    .map((s) => (
+                      <li key={s.id}>
+                        <span className="text-ink">{s.name}</span>
+                        <span className="block text-muted">
+                          {s.address_line1}, {s.zip_code}
+                        </span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
           <p className="mt-3">
             Every price check is saved with its date and never changed, so the history builds up day by day.
           </p>

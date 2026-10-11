@@ -15,11 +15,14 @@ from pathlib import Path
 
 import requests
 
+RETRY_STATUSES = {429, 500, 502, 503, 504}  # busy or temporary server errors
+RETRY_WAITS = [5, 20]                       # seconds to wait before each retry
+
 BASE_URL = "https://api.kroger.com"
 TOKEN_CACHE = Path(__file__).parent / ".kroger_token.json"
 
 # Safety cap on API calls for a single run (daily limits are 10,000 / 1,600).
-MAX_CALLS_PER_RUN = 100
+MAX_CALLS_PER_RUN = 400
 api_calls = 0
 
 
@@ -30,6 +33,13 @@ def call_api(method, path, **kwargs):
         sys.exit(f"Stopping: hit the safety limit of {MAX_CALLS_PER_RUN} API calls.")
     api_calls += 1
     response = requests.request(method, BASE_URL + path, timeout=30, **kwargs)
+    # Retry a couple of times on temporary errors, so one hiccup doesn't end the run.
+    for wait in RETRY_WAITS:
+        if response.status_code not in RETRY_STATUSES:
+            break
+        time.sleep(wait)
+        api_calls += 1
+        response = requests.request(method, BASE_URL + path, timeout=30, **kwargs)
     if not response.ok:
         sys.exit(f"API error {response.status_code} on {path}:\n{response.text}")
     return response.json()
@@ -66,13 +76,19 @@ def get_token():
     return data["access_token"]
 
 
-def find_nearest_stores(token, zip_code, limit):
-    """Return the stores closest to a ZIP code (Kroger sorts them by distance)."""
+def find_nearest_stores(token, zip_code, limit, chain=None):
+    """
+    Return the stores closest to a ZIP code (Kroger sorts them by distance).
+    chain limits results to one banner, e.g. "KROGER", "RALPHS" or "KINGSOOPERS".
+    """
+    params = {"filter.zipCode.near": zip_code, "filter.limit": limit}
+    if chain:
+        params["filter.chain"] = chain
     data = call_api(
         "GET",
         "/v1/locations",
         headers={"Authorization": f"Bearer {token}"},
-        params={"filter.zipCode.near": zip_code, "filter.limit": limit},
+        params=params,
     )
     return data["data"]
 

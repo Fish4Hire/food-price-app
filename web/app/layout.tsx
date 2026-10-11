@@ -17,11 +17,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://getcheapereats.com"),
   title: {
-    default: "Cheaper Eats · Houston grocery prices",
+    default: "Cheaper Eats · Grocery prices compared",
     template: "%s · Cheaper Eats",
   },
   description:
-    "What 21 grocery staples cost at Houston Kroger stores, checked every morning. Compare stores, find sales and watch prices change.",
+    "What 21 grocery staples cost in 7 U.S. cities, checked every morning. Compare cities and stores, find sales and see how prices stack up against the U.S. average.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -46,7 +46,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <BasketMark className="h-7 w-7" />
               <span className="text-lg">Cheaper Eats</span>
               <span className="hidden text-sm font-normal text-muted sm:inline">
-                Houston grocery prices
+                Grocery prices, compared
               </span>
             </Link>
             <nav className="flex items-center gap-1 text-sm">

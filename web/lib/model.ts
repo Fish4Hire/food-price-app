@@ -2,10 +2,26 @@
 
 import { houstonTime, longDay, monthLabel } from "./format";
 import type { PriceData } from "./data";
-import type { Benchmark, BenchmarkRow, DashboardItem, DashboardModel, Listing, Offer, Point, Store } from "./types";
+import type { Benchmark, BenchmarkRow, DashboardItem, DashboardModel, Listing, Metro, Offer, Point, Store } from "./types";
 
-/** All stores selected: compare across every store. Otherwise a store id. */
-export type StoreChoice = "all" | number;
+/** The stores being compared: one store's id, or every store in a city. */
+export type StoreChoice = number[];
+
+/**
+ * Group stores by city, in the order cities were added (oldest store first).
+ * Stores with no city (e.g. a placeholder location we stopped tracking) are left out.
+ */
+export function groupMetros(stores: Store[]): Metro[] {
+  const metros: Metro[] = [];
+  for (const store of [...stores].sort((a, b) => a.id - b.id)) {
+    const name = store.metro;
+    if (!name) continue;
+    let metro = metros.find((m) => m.name === name);
+    if (!metro) metros.push((metro = { name, storeIds: [] }));
+    metro.storeIds.push(store.id);
+  }
+  return metros;
+}
 
 export function toOffer(listing: Listing): Offer {
   return {
@@ -89,6 +105,7 @@ export function buildDashboard({ stores, products, listings, history, benchmarks
   );
   return {
     stores,
+    metros: groupMetros(stores),
     items,
     updatedLabel: latestFetch ? houstonTime(latestFetch) : "not yet",
     trackingSinceLabel: days.length ? longDay(days[0]) : "today",
@@ -96,27 +113,28 @@ export function buildDashboard({ stores, products, listings, history, benchmarks
   };
 }
 
-/** The offer to show for an item: that store's, or the cheapest across all stores. */
+/** The cheapest offer for an item among the chosen stores. */
 export function pickOffer(
   item: DashboardItem,
   choice: StoreChoice,
 ): { offer: Offer; storeId: number } | null {
-  if (choice !== "all") {
-    const offer = item.offers[choice];
-    return offer ? { offer, storeId: choice } : null;
-  }
   let best: { offer: Offer; storeId: number } | null = null;
-  for (const [storeId, offer] of Object.entries(item.offers)) {
-    if (!best || offer.ppu < best.offer.ppu) best = { offer, storeId: Number(storeId) };
+  for (const storeId of choice) {
+    const offer = item.offers[storeId];
+    if (offer && (!best || offer.ppu < best.offer.ppu)) best = { offer, storeId };
   }
   return best;
 }
 
-/** Daily price per unit for an item: one store's, or the cheapest store each day. */
+/** Daily price per unit for an item: the cheapest of the chosen stores each day. */
 export function pickHistory(item: DashboardItem, choice: StoreChoice): Point[] {
-  if (choice !== "all") return item.history[choice] ?? [];
+  return cheapestPerDay(choice.map((id) => item.history[id] ?? []));
+}
+
+/** Merge several daily series into one, keeping the lowest value each day. */
+export function cheapestPerDay(seriesList: Point[][]): Point[] {
   const byDay = new Map<string, number>();
-  for (const points of Object.values(item.history)) {
+  for (const points of seriesList) {
     for (const [day, value] of points) {
       const current = byDay.get(day);
       if (current === undefined || value < current) byDay.set(day, value);

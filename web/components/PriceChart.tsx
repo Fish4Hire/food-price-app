@@ -9,6 +9,7 @@ export type ChartSeries = { id: number; label: string; color: string; points: Po
 
 const HEIGHT = 280;
 const MARGIN = { top: 16, right: 96, bottom: 28, left: 56 };
+const MAX_END_LABELS = 5; // more lines than this: rely on the legend and tooltip instead
 const LABEL_GAP = 14; // min vertical space between end-of-line labels
 
 const dayMs = (day: string) => Date.parse(`${day}T12:00:00Z`);
@@ -61,7 +62,8 @@ export function PriceChart({ series, unit }: { series: ChartSeries[]; unit: stri
   );
   const values = series.flatMap((s) => s.points.map(([, v]) => v));
 
-  const plotW = Math.max(width - MARGIN.left - MARGIN.right, 10);
+  const showEndLabels = series.length > 1 && series.length <= MAX_END_LABELS;
+  const plotW = Math.max(width - MARGIN.left - (showEndLabels ? MARGIN.right : 16), 10);
   const plotH = HEIGHT - MARGIN.top - MARGIN.bottom;
 
   // Y range with breathing room; a flat line sits in the middle.
@@ -202,7 +204,7 @@ export function PriceChart({ series, unit }: { series: ChartSeries[]; unit: stri
             ))}
 
             {/* Direct labels at the end of each line (text in ink, key in series color) */}
-            {series.length > 1 &&
+            {showEndLabels &&
               series.map((s, i) =>
                 s.points.length ? (
                   <g key={s.id}>

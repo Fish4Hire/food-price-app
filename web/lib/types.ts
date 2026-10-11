@@ -6,7 +6,11 @@ export type Store = {
   address_line1: string | null;
   city: string | null;
   zip_code: string | null;
+  metro: string | null; // e.g. "Houston, TX"
 };
+
+/** A city and the stores we track there. */
+export type Metro = { name: string; storeIds: number[] };
 
 export type Product = {
   id: number;
@@ -82,6 +86,7 @@ export type DashboardItem = {
 
 export type DashboardModel = {
   stores: Store[];
+  metros: Metro[];
   items: DashboardItem[];
   updatedLabel: string;
   trackingSinceLabel: string;

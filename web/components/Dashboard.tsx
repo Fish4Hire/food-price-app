@@ -9,11 +9,10 @@ import {
   pickHistory,
   pickOffer,
   weeklyChange,
-  type StoreChoice,
 } from "@/lib/model";
 import type { DashboardItem, DashboardModel } from "@/lib/types";
+import { CostBars } from "./CostBars";
 import { Sparkline } from "./Sparkline";
-import { StoreBars } from "./StoreBars";
 
 type Sort = "category" | "price-low" | "price-high" | "change";
 
@@ -25,23 +24,43 @@ const SORTS: { value: Sort; label: string }[] = [
 ];
 
 export function Dashboard({ model }: { model: DashboardModel }) {
-  const { stores, items } = model;
+  const { stores, metros, items } = model;
   const categories = useMemo(() => [...new Set(items.map((i) => i.category))], [items]);
   const priceCeiling = useMemo(() => {
     const prices = items.flatMap((i) => Object.values(i.offers).map((o) => o.price));
     return Math.ceil(Math.max(1, ...prices));
   }, [items]);
 
-  const [store, setStore] = useState<StoreChoice>("all");
+  const [metroName, setMetroName] = useState(metros[0]?.name ?? "");
+  const [storeId, setStoreId] = useState<"all" | number>("all");
   const [category, setCategory] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [saleOnly, setSaleOnly] = useState(false);
   const [maxPrice, setMaxPrice] = useState(priceCeiling);
   const [sort, setSort] = useState<Sort>("category");
 
+  // The stores being compared: every store in the chosen city, or just one.
+  const metro = metros.find((m) => m.name === metroName) ?? metros[0];
+  const metroStores = stores.filter((s) => metro.storeIds.includes(s.id));
+  const store = useMemo(() => (storeId === "all" ? metro.storeIds : [storeId]), [storeId, metro]);
+
   const basket = basketCost(items, store);
-  const bestStoreBasket = basketCost(items, "all");
-  const storeBars = stores.map((s) => ({ id: s.id, label: shortStore(s.name), ...basketTotal(items, s.id) }));
+  const bestStoreBasket = basketCost(items, metro.storeIds);
+  const storeBars = metroStores.map((s) => ({ id: s.id, label: shortStore(s.name), ...basketTotal(items, [s.id]) }));
+  const cityBars = metros.map((m) => {
+    const vs = basketVsBenchmark(items, m.storeIds);
+    return {
+      id: m.name,
+      label: m.name,
+      ...basketTotal(items, m.storeIds),
+      note: vs ? <VsAverage change={vs.change} /> : undefined,
+    };
+  });
+
+  function chooseMetro(name: string) {
+    setMetroName(name);
+    setStoreId("all");
+  }
 
   // Basket cost a week ago vs now, from each item's history (only once a week of data exists).
   const basketChange = useMemo(() => {
@@ -94,7 +113,7 @@ export function Dashboard({ model }: { model: DashboardModel }) {
   const vsAverage = basketVsBenchmark(items, store);
   const onSaleCount = items.filter((item) => pickOffer(item, store)?.offer.onSale).length;
   const filtersActive = category !== null || saleOnly || query !== "" || maxPrice < priceCeiling;
-  const selectedStoreName = store === "all" ? null : stores.find((s) => s.id === store)?.name;
+  const selectedStoreName = storeId === "all" ? null : stores.find((s) => s.id === storeId)?.name;
 
   function resetFilters() {
     setCategory(null);
@@ -112,7 +131,10 @@ export function Dashboard({ model }: { model: DashboardModel }) {
           <p className="mt-2 text-5xl font-semibold tracking-tight sm:text-6xl">{money(basket.total)}</p>
           <p className="mt-3 max-w-md text-ink-2">
             {items.length} everyday staples at the lowest price per unit
-            {selectedStoreName ? ` at ${selectedStoreName}` : ` across all ${stores.length} stores`}.
+            {selectedStoreName
+              ? ` at ${selectedStoreName}, ${metro.name}`
+              : ` across ${metroStores.length} stores in ${metro.name}`}
+            .
           </p>
           <div className="mt-6 flex flex-wrap gap-2 text-sm">
             {basketChange !== null ? (
@@ -135,24 +157,51 @@ export function Dashboard({ model }: { model: DashboardModel }) {
         </div>
 
         <div className="rounded-2xl border border-line bg-surface p-6 lg:col-span-2">
-          <h2 className="font-semibold">Basket cost by store</h2>
+          <h2 className="font-semibold">Basket cost by store in {metro.name}</h2>
           <p className="mb-5 mt-1 text-sm text-ink-2">
             Shopping only at one store. Mixing stores costs {money(bestStoreBasket.total)}.
           </p>
-          <StoreBars bars={storeBars} selected={store} />
+          <CostBars bars={storeBars} selected={storeId === "all" ? null : storeId} />
         </div>
       </section>
+
+      {/* Compare cities: click a city to see its stores and prices */}
+      {metros.length > 1 && (
+        <section className="mt-4 rounded-2xl border border-line bg-surface p-6">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-semibold">Basket cost by city</h2>
+            <p className="text-sm text-ink-2">Cheapest option at each city&apos;s stores. Click a city to explore it.</p>
+          </div>
+          <CostBars bars={cityBars} selected={metro.name} onSelect={(id) => chooseMetro(String(id))} twoColumns />
+        </section>
+      )}
 
       {/* Filters: one row above everything they scope */}
       <section aria-label="Filters" className="mt-8 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
-          <Segmented
+          {metros.length > 1 && (
+            <label className="flex h-10 items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm">
+              <span className="text-ink-2">City</span>
+              <select
+                value={metro.name}
+                onChange={(e) => chooseMetro(e.target.value)}
+                className="bg-transparent font-medium focus:outline-none"
+              >
+                {metros.map((m) => (
+                  <option key={m.name} value={m.name}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <Segmented<"all" | number>
             label="Store"
-            value={store}
-            onChange={setStore}
+            value={storeId}
+            onChange={setStoreId}
             options={[
               { value: "all", label: "All stores" },
-              ...stores.map((s) => ({ value: s.id, label: shortStore(s.name) })),
+              ...metroStores.map((s) => ({ value: s.id, label: shortStore(s.name) })),
             ]}
           />
           <div className="relative min-w-48 flex-1">
@@ -245,8 +294,8 @@ export function Dashboard({ model }: { model: DashboardModel }) {
                   <ItemRow
                     item={item}
                     offer={picked!.offer}
-                    storeLabel={store === "all" ? shortStore(stores.find((s) => s.id === picked!.storeId)?.name ?? "") : null}
-                    spread={store === "all" ? priceSpread(item) : null}
+                    storeLabel={storeId === "all" ? shortStore(stores.find((s) => s.id === picked!.storeId)?.name ?? "") : null}
+                    spread={storeId === "all" ? priceSpread(item, metro.storeIds) : null}
                     history={history}
                     change={change}
                   />
@@ -268,14 +317,14 @@ export function Dashboard({ model }: { model: DashboardModel }) {
   );
 }
 
-function basketTotal(items: DashboardItem[], storeId: number) {
-  const { total, missing } = basketCost(items, storeId);
+function basketTotal(items: DashboardItem[], storeIds: number[]) {
+  const { total, missing } = basketCost(items, storeIds);
   return { value: total, missing };
 }
 
-/** "Same at all stores", or the price-per-unit range across stores. */
-function priceSpread(item: DashboardItem): { same: boolean; low: number; high: number } {
-  const ppus = Object.values(item.offers).map((o) => o.ppu);
+/** "Same at all stores", or the price-per-unit range across the given stores. */
+function priceSpread(item: DashboardItem, storeIds: number[]): { same: boolean; low: number; high: number } {
+  const ppus = storeIds.flatMap((id) => (item.offers[id] ? [item.offers[id].ppu] : []));
   const low = Math.min(...ppus);
   const high = Math.max(...ppus);
   return { same: high - low < 0.005, low, high };
@@ -314,7 +363,7 @@ function ItemRow({
                 ? "Same price at all stores"
                 : `Cheapest at ${storeLabel} · up to ${perUnit(spread.high, item.unit)} elsewhere`)}
             {spread && item.benchmark && " · "}
-            {item.benchmark && <VsAverage ours={offer.ppu} average={item.benchmark.ppu} />}
+            {item.benchmark && <VsAverage change={(offer.ppu - item.benchmark.ppu) / item.benchmark.ppu} />}
           </p>
         )}
       </div>
@@ -353,8 +402,7 @@ function ItemRow({
 }
 
 /** "18% below U.S. avg", colored, with the words carrying the meaning too. */
-function VsAverage({ ours, average }: { ours: number; average: number }) {
-  const change = (ours - average) / average;
+function VsAverage({ change }: { change: number }) {
   if (Math.abs(change) < 0.005) return <span>about the U.S. average</span>;
   return (
     <span className={change < 0 ? "text-down" : "text-up"}>

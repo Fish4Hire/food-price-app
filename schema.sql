@@ -156,6 +156,12 @@ grant select on latest_listing_prices, latest_basket_prices, basket_price_histor
     to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
+-- Cities (added 2026-10-10): which metro area each store belongs to, so the
+-- website can compare cities. Set by collect_prices.py (e.g. 'Houston, TX').
+-- ---------------------------------------------------------------------------
+alter table locations add column if not exists metro text;
+
+-- ---------------------------------------------------------------------------
 -- Benchmarks (added 2026-10-10): official average prices to compare against,
 -- e.g. the Bureau of Labor Statistics' monthly U.S. city average prices.
 -- Unlike prices, rows are updated in place, because the BLS revises its numbers.
