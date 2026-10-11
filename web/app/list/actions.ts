@@ -15,7 +15,7 @@ export type Staple = { productId: number; name: string; category: string };
 export type SearchState =
   | { status: "idle" }
   | { status: "error"; message: string }
-  | { status: "done"; query: string; staples: Staple[]; products: ProductResult[]; storeName: string | null };
+  | { status: "done"; query: string; staples: Staple[]; products: ProductResult[]; priceNote: string };
 
 /** Search our staples and Kroger's products. Prices come from the user's nearest store. */
 export async function search(_previous: SearchState, formData: FormData): Promise<SearchState> {
@@ -35,9 +35,14 @@ export async function search(_previous: SearchState, formData: FormData): Promis
   // Prices from the Kroger-family store nearest the user's ZIP, if there is one.
   const { homeZip } = await getProfile(user.id);
   const store = homeZip ? (await getNearbyStores(homeZip, 1))[0] : undefined;
+  const priceNote = store
+    ? `Prices at ${store.name}.`
+    : homeZip
+      ? `No Kroger-family stores near ${homeZip} yet, so no prices. More chains are coming.`
+      : "Save your ZIP on your account page to see prices.";
   try {
     const results = await searchProducts(query.toLowerCase(), store?.locationId ?? null);
-    return { status: "done", query, staples, products: results, storeName: store?.name ?? null };
+    return { status: "done", query, staples, products: results, priceNote };
   } catch {
     return { status: "error", message: "Product search isn't working right now. Please try again in a minute." };
   }

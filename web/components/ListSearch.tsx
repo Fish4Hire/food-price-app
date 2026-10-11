@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useTransition } from "react";
+import { useActionState, useSyncExternalStore, useTransition } from "react";
 import { addProduct, addStaple, search, type SearchState } from "@/app/list/actions";
 import { money } from "@/lib/format";
 import type { ProductResult } from "@/lib/kroger";
@@ -9,6 +9,9 @@ import type { ProductResult } from "@/lib/kroger";
 export function ListSearch({ staplesOnList, productsOnList }: { staplesOnList: number[]; productsOnList: string[] }) {
   const [state, formAction, searching] = useActionState<SearchState, FormData>(search, { status: "idle" });
   const [adding, startAdding] = useTransition();
+  // True once the page's code has loaded. Until then the Search button stays off,
+  // so an early submit can't fall back to a full page reload (and lose the results).
+  const ready = useSyncExternalStore(subscribeNothing, () => true, () => false);
 
   return (
     <section className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
@@ -25,7 +28,7 @@ export function ListSearch({ staplesOnList, productsOnList }: { staplesOnList: n
         />
         <button
           type="submit"
-          disabled={searching}
+          disabled={searching || !ready}
           className="h-11 rounded-xl bg-accent px-5 font-medium text-accent-ink transition-opacity disabled:opacity-60"
         >
           {searching ? "Searching…" : "Search"}
@@ -63,9 +66,7 @@ export function ListSearch({ staplesOnList, productsOnList }: { staplesOnList: n
 
           <div>
             <h3 className="text-sm font-semibold text-ink">Products</h3>
-            <p className="mb-2 text-xs text-muted">
-              {state.storeName ? `Prices at ${state.storeName}.` : "Save your ZIP on your account page to see prices."}
-            </p>
+            <p className="mb-2 text-xs text-muted">{state.priceNote}</p>
             {state.products.length === 0 ? (
               <p className="text-sm text-ink-2">No products found for &ldquo;{state.query}&rdquo;.</p>
             ) : (
@@ -87,6 +88,8 @@ export function ListSearch({ staplesOnList, productsOnList }: { staplesOnList: n
     </section>
   );
 }
+
+const subscribeNothing = () => () => {};
 
 function ProductCard({
   product,
