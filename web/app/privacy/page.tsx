@@ -109,9 +109,10 @@ export default function PrivacyPage() {
             <Link href="/account">account</Link> and <Link href="/list">list</Link> pages.
           </li>
           <li>
-            We keep your account information until you delete your account. To delete it, email <ContactLink /> from the
-            address you signed up with, and we&apos;ll delete your account, ZIP code and lists within 30 days. (A delete
-            button is coming soon.)
+            We keep your account information until you delete your account. You can delete it at any time on your{" "}
+            <Link href="/account">account page</Link>: your account, ZIP code and lists are deleted immediately. If you
+            can&apos;t sign in, email <ContactLink /> from the address you signed up with and we&apos;ll delete it within 30
+            days.
           </li>
           <li>
             You can also ask us for a copy of the information we hold about you, or ask us to correct it, at the same

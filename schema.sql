@@ -192,6 +192,28 @@ revoke all on profiles from anon;
 grant select, insert, update on profiles to authenticated;
 
 -- ---------------------------------------------------------------------------
+-- Account deletion (added 2026-10-11): a signed-in user can delete their own
+-- account. Deleting the auth user also deletes their profile, lists and list
+-- items (all "on delete cascade"). Runs with owner rights so the website never
+-- needs the secret key, but it only ever deletes the caller's own account.
+-- ---------------------------------------------------------------------------
+create or replace function delete_my_account() returns void
+language plpgsql security definer set search_path = ''
+as $$
+declare
+    me uuid := auth.uid();
+begin
+    if me is null then
+        raise exception 'not signed in';
+    end if;
+    delete from auth.users where id = me;
+end;
+$$;
+
+revoke all on function delete_my_account() from public, anon;
+grant execute on function delete_my_account() to authenticated;
+
+-- ---------------------------------------------------------------------------
 -- Shopping lists (added 2026-10-11): private, one row per list and per item.
 -- An item is either a staple (a basket product: cheapest brand wins) or a
 -- specific Kroger product (exact item, by Kroger productId).

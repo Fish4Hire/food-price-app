@@ -1,6 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,4 +25,20 @@ export async function saveHomeZip(_previous: ZipState, formData: FormData): Prom
 
   refresh(); // re-render the account page so the nearby stores update
   return { status: "saved", zip };
+}
+
+export type DeleteState = { status: "idle" } | { status: "error"; message: string };
+
+/** Permanently delete the signed-in user's account, ZIP code and lists. */
+export async function deleteAccount(_previous: DeleteState, formData: FormData): Promise<DeleteState> {
+  if (String(formData.get("confirm") ?? "").trim().toLowerCase() !== "delete") {
+    return { status: "error", message: 'Type "delete" to confirm.' };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_my_account");
+  if (error) return { status: "error", message: "We couldn't delete your account. Please try again or email us." };
+
+  // The account is gone; clear the sign-in cookies on this device.
+  await supabase.auth.signOut({ scope: "local" });
+  redirect("/account/deleted");
 }

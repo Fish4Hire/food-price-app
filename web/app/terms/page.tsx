@@ -45,7 +45,7 @@ export default function TermsPage() {
           <li>Accounts are for one person and for personal, non-commercial use.</li>
           <li>You must be at least 13 years old to create an account.</li>
           <li>
-            You can stop using Cheaper Eats at any time and ask us to delete your account (see our{" "}
+            You can stop using Cheaper Eats and delete your account at any time from your account page (see our{" "}
             <Link href="/privacy">privacy policy</Link>).
           </li>
         </ul>

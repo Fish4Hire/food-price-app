@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { signOut } from "@/app/auth/actions";
+import { DeleteAccount } from "@/components/DeleteAccount";
 import { HomeZipForm } from "@/components/HomeZipForm";
 import { getCurrentUser } from "@/lib/auth";
 import { getPriceData } from "@/lib/data";
@@ -64,6 +65,8 @@ async function AccountDetails() {
           Sign out
         </button>
       </form>
+
+      <DeleteAccount />
     </div>
   );
 }
