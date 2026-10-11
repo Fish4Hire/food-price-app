@@ -149,6 +149,78 @@ $$;
 revoke all on function record_prices(jsonb) from public, anon, authenticated;
 grant execute on function record_prices(jsonb) to service_role;
 
+-- Prices checked by hand (added 2026-10-12) for stores with no API (H-E-B, Walmart,
+-- Target, Costco, Sprouts ...). Only app owners/helpers (app_owners) may save them.
+-- p_entries: [{slug, price, regular?, size, size_value, size_unit, base_qty, base_unit, description?}]
+-- price = what the shelf charges now; regular = the normal price if it's on sale.
+create or replace function record_manual_prices(p_location_id bigint, p_entries jsonb)
+returns table (added integer, confirmed integer)
+language plpgsql security definer set search_path = public
+as $$
+declare
+    e jsonb;
+    store_chain text;
+    item_id bigint;
+    rows jsonb := '[]'::jsonb;
+    now_ts timestamptz := now();
+    shelf numeric;
+    normal numeric;
+begin
+    if not is_app_owner() then
+        raise exception 'only Cheaper Eats price checkers can save prices';
+    end if;
+    select coalesce(chain, name) into store_chain from locations
+    where id = p_location_id and kind = 'grocery' and source <> 'kroger';
+    if store_chain is null then
+        raise exception 'not a hand-checked store';
+    end if;
+
+    for e in select * from jsonb_array_elements(p_entries) loop
+        shelf := (e->>'price')::numeric;
+        normal := coalesce((e->>'regular')::numeric, shelf);
+        if shelf is null or shelf <= 0 or shelf > 1000 or normal < shelf then
+            continue;
+        end if;
+        insert into store_items (source, external_id, product_id, description, size, size_value, size_unit,
+                                 base_qty, base_unit, updated_at)
+        select 'manual', store_chain || ':' || p.slug, p.id,
+               coalesce(nullif(e->>'description', ''), store_chain || ' ' || p.name),
+               e->>'size', (e->>'size_value')::numeric, e->>'size_unit',
+               (e->>'base_qty')::numeric, e->>'base_unit', now_ts
+        from products p where p.slug = e->>'slug'
+        on conflict (source, external_id) do update
+            set description = excluded.description, size = excluded.size, size_value = excluded.size_value,
+                size_unit = excluded.size_unit, base_qty = excluded.base_qty, base_unit = excluded.base_unit,
+                updated_at = excluded.updated_at
+        returning id into item_id;
+        if item_id is null then
+            continue;  -- unknown product slug
+        end if;
+        rows := rows || jsonb_build_object(
+            'store_item_id', item_id, 'location_id', p_location_id,
+            'regular_price', normal, 'promo_price', case when shelf < normal then shelf end,
+            'source', 'manual', 'search_term', 'manual', 'fetched_at', now_ts);
+        item_id := null;
+    end loop;
+    return query select * from record_prices(rows);
+end;
+$$;
+revoke all on function record_manual_prices(bigint, jsonb) from public, anon;
+grant execute on function record_manual_prices(bigint, jsonb) to authenticated;
+
+-- The last hand-checked price for each item at each store (for the entry screen).
+drop view if exists manual_last_prices;
+create view manual_last_prices with (security_invoker = true) as
+select distinct on (p.location_id, si.product_id)
+    p.location_id, si.product_id, pr.slug, si.description, si.size, si.size_value,
+    p.regular_price, p.promo_price, coalesce(p.checked_through, p.fetched_at) as checked_at
+from prices p
+join store_items si on si.id = p.store_item_id
+join products pr on pr.id = si.product_id
+where si.source = 'manual'
+order by p.location_id, si.product_id, p.fetched_at desc;
+grant select on manual_last_prices to anon, authenticated;
+
 -- ---------------------------------------------------------------------------
 -- Basket (added 2026-10-10): canonical products, normalized sizes, and a view
 -- with today's cheapest price for each basket item at each store.
@@ -178,7 +250,8 @@ with recent as (
         coalesce(p.promo_price, p.regular_price) as price,
         coalesce(p.checked_through, p.fetched_at) as fetched_at  -- when it was last confirmed
     from prices p
-    where coalesce(p.checked_through, p.fetched_at) > now() - interval '3 days'  -- still being seen
+    -- still being seen: daily API prices within 3 days; weekly hand-checked prices within 10
+    where coalesce(p.checked_through, p.fetched_at) > now() - case when p.source = 'manual' then interval '10 days' else interval '3 days' end
     order by p.location_id, p.store_item_id, p.fetched_at desc
 )
 select pr.id as product_id, pr.slug, pr.name as product, pr.category, pr.unit_label,

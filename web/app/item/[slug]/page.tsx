@@ -35,7 +35,7 @@ export default function ItemPage(props: PageProps<"/item/[slug]">) {
 }
 
 // One color per city, in a fixed order (validated for color-blind safety in globals.css).
-const CITY_COLORS = [1, 2, 3, 4, 5, 6, 7].map((n) => `var(--series-${n})`);
+const CITY_COLORS = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `var(--series-${n})`);
 
 async function ItemDetails({ params }: { params: PageProps<"/item/[slug]">["params"] }) {
   const { slug } = await params;

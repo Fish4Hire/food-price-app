@@ -25,12 +25,18 @@ export async function getPersonalization(): Promise<Personalization> {
   const { homeZip } = await getProfile(user.id);
   if (!homeZip) return { status: "no-zip" };
 
-  const nearby = await getNearbyStores(homeZip); // nearest first
-  if (!nearby.length) return { status: "none-nearby", zip: homeZip };
-
+  const nearby = await getNearbyStores(homeZip); // nearest first (Kroger-family stores)
   const data = await getPriceData();
   const featured = visibleStores(data, "featured");
   const userAreas = visibleStores(data, "user");
+
+  // Stores we price by hand (H-E-B, Walmart, ...) aren't in Kroger's store finder, so
+  // match those by ZIP area (same first three digits, e.g. 782xx = San Antonio).
+  const sameArea = featured.find((s) => !nearby.some((n) => n.locationId === s.external_id) && s.zip_code?.startsWith(homeZip.slice(0, 3)));
+  const areaFallback = sameArea
+    ? { status: "tracked" as const, zip: homeZip, metro: sameArea.metro!, nearestStoreId: sameArea.id, nearestStoreName: sameArea.name }
+    : null;
+  if (!nearby.length) return areaFallback ?? { status: "none-nearby", zip: homeZip };
 
   for (const candidate of nearby) {
     const store = [...featured, ...userAreas].find((s) => s.external_id === candidate.locationId);
@@ -60,5 +66,5 @@ export async function getPersonalization(): Promise<Personalization> {
       },
     };
   }
-  return { status: "untracked", zip: homeZip, nearbyCount: nearby.length, nearestName: nearby[0].name };
+  return areaFallback ?? { status: "untracked", zip: homeZip, nearbyCount: nearby.length, nearestName: nearby[0].name };
 }

@@ -149,12 +149,13 @@ def deactivate_products_except(client, slugs):
 
 
 def all_store_items(client):
-    """Fetch every saved listing, 1,000 at a time (Supabase's page size)."""
+    """Fetch every Kroger listing, 1,000 at a time (Supabase's page size)."""
     rows, start = [], 0
     while True:
         page = (
             client.table("store_items")
             .select("id, description, size, size_value, size_unit, base_qty, base_unit, product_id")
+            .eq("source", "kroger")  # hand-checked items are linked by hand; never re-match them
             .order("id")
             .range(start, start + 999)
             .execute()

@@ -16,3 +16,10 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   if (!data.user) return null;
   return { id: data.user.id, email: data.user.email ?? "", createdAt: data.user.created_at };
 }
+
+/** Is the signed-in user an app owner or price checker? (See app_owners in schema.sql.) */
+export async function isOwner(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("is_app_owner");
+  return !error && data === true;
+}

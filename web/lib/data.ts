@@ -44,7 +44,7 @@ export async function getPriceData(): Promise<PriceData> {
   const [stores, products, listings, history, benchmarks] = await Promise.all([
     fetchAll<Store>("locations?select=id,external_id,name,address_line1,city,zip_code,metro,tracking&order=id"),
     fetchAll<Product>(
-      "products?select=id,slug,name,category,unit_label,basket_qty&active=eq.true&order=id",
+      "products?select=id,slug,name,category,unit_label,basket_qty,size_value&active=eq.true&order=id",
     ),
     fetchAll<Listing>(
       "latest_listing_prices?select=product_id,slug,location_id,store_item_id,description," +

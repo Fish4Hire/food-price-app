@@ -7,7 +7,7 @@ import type { ListItem } from "./lists";
 import { visibleStores } from "./model";
 import type { Store } from "./types";
 
-const MAX_STORES = 4; // how many nearby stores to compare
+const MAX_STORES = 6; // how many nearby stores to compare
 const MIN_SPLIT_SAVINGS = 0.5; // don't suggest a second trip to save pennies
 
 /** One item's cost at one store (already multiplied by quantity). */
@@ -37,10 +37,10 @@ export async function priceList(items: ListItem[], homeZip: string | null): Prom
   const data = await getPriceData();
   const priced = [...visibleStores(data, "featured"), ...visibleStores(data, "user")];
   const nearby = await getNearbyStores(homeZip, 8);
-  const stores = nearby
-    .map((n) => priced.find((s) => s.external_id === n.locationId))
-    .filter((s): s is Store => !!s)
-    .slice(0, MAX_STORES);
+  const kroger = nearby.map((n) => priced.find((s) => s.external_id === n.locationId)).filter((s): s is Store => !!s);
+  // Plus stores we price by hand (H-E-B, Walmart, ...) in the same ZIP area (first three digits).
+  const sameArea = priced.filter((s) => !kroger.includes(s) && s.zip_code?.startsWith(homeZip.slice(0, 3)));
+  const stores = [...kroger, ...sameArea].slice(0, MAX_STORES);
   if (!stores.length) return { status: "no-stores", zip: homeZip };
 
   // Live prices for specific products at each store (one Kroger call per 50 products per store).

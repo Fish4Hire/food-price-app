@@ -21,6 +21,7 @@ export type Product = {
   category: string;
   unit_label: string;
   basket_qty: number;
+  size_value: number | null; // fixed package size in unit_label, if the item has one
 };
 
 /** One row of the latest_listing_prices view: a listing's latest price at one store. */
