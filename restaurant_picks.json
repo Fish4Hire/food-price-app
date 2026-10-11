@@ -14,7 +14,7 @@
     "sample": [
       "All items are only $17.00",
       "Blackened Mahi Mahi $38.50",
-      "blackened redfish, crawfish etouff\u00e9e $34.95",
+      "blackened redfish, crawfish etouffée $34.95",
       "Oysters on the Half Shell $3.50"
     ],
     "item_count": 39
@@ -32,10 +32,10 @@
     "website": "https://thestationsa.com/",
     "menu_url": "https://thestationsa.com/menu",
     "sample": [
-      "\u200b\u200b\u200b\u200b\u200bHabanero Roast Beef $8.99",
+      "​​​​​Habanero Roast Beef $8.99",
       "3 Garlic Roast Beef $8.99",
       "2 Roast Beef & Horseradish $8.99",
-      "18 Jalape\u00f1o Roast Beef $8.99"
+      "18 Jalapeño Roast Beef $8.99"
     ],
     "item_count": 45
   },
@@ -181,7 +181,7 @@
   },
   {
     "osm_id": "node/8706898450",
-    "name": "Bras\u00e3o Brazilian Steakhouse",
+    "name": "Brasão Brazilian Steakhouse",
     "cuisine": "brazilian",
     "kind": "restaurant",
     "address": "19210 Interstate 10 West",
@@ -194,14 +194,14 @@
     "sample": [
       "Full Experience $54.95",
       "Salad Bar Only $31.95",
-      "Children 7 \u2013 11 $27.95",
-      "Children 3 \u2013 6 $10.95"
+      "Children 7 – 11 $27.95",
+      "Children 3 – 6 $10.95"
     ],
     "item_count": 18
   },
   {
     "osm_id": "node/12309550045",
-    "name": "B\u00e1nh M\u00ec",
+    "name": "Bánh Mì",
     "cuisine": "vietnamese",
     "kind": "restaurant",
     "address": "7531 Bandera Road",
@@ -398,5 +398,545 @@
       "Roasted Red Pepper Hummus $7.50"
     ],
     "item_count": 15
+  },
+  {
+    "osm_id": "node/14077540153",
+    "name": "Moroccan Bites",
+    "cuisine": "moroccan",
+    "kind": "restaurant",
+    "address": "5718 Evers Road",
+    "city": "San Antonio",
+    "zip": "78238",
+    "lat": 29.4888942,
+    "lon": -98.5988399,
+    "website": "https://moroccanbitestagine.com/",
+    "menu_url": "https://moroccanbitestagine.com/menu",
+    "sample": [
+      "Chicken Pastilla $26.77",
+      "Lamb Shank with Apricots $23.68",
+      "Moroccan Hummus $8.23",
+      "Mint Tea Cup $7.20"
+    ],
+    "item_count": 86
+  },
+  {
+    "osm_id": "way/275379573",
+    "name": "Fire Wok",
+    "cuisine": "asian",
+    "kind": "fast_food",
+    "address": "11075 Interstate 10 West",
+    "city": "San Antonio",
+    "zip": "78230",
+    "lat": 29.5479403,
+    "lon": -98.5813922,
+    "website": "http://www.firewok.com/",
+    "menu_url": "http://www.firewok.com/menu.html",
+    "sample": [
+      "Cool Lettuce Wraps $7.89",
+      "Salted soy beans in the pod $3.89",
+      "Potstickers $6.98",
+      "Crab & Cream Cheese Wontons $3.98"
+    ],
+    "item_count": 33
+  },
+  {
+    "osm_id": "way/1192781067",
+    "name": "Delia's Tamales",
+    "cuisine": "mexican",
+    "kind": "restaurant",
+    "address": "13527 North Loop 1604 West",
+    "city": "San Antonio",
+    "zip": "78249",
+    "lat": 29.5716761,
+    "lon": -98.6487175,
+    "website": "https://deliastamales.com/",
+    "menu_url": "https://deliastamales.com/menu/",
+    "sample": [
+      "1 Dozen $11.99",
+      "Chicken $11.99",
+      "Beef $11.99",
+      "Bean $11.99"
+    ],
+    "item_count": 21
+  },
+  {
+    "osm_id": "node/14110801101",
+    "name": "India Oven",
+    "cuisine": "indian",
+    "kind": "restaurant",
+    "address": "1031 Patricia Drive",
+    "city": "San Antonio",
+    "zip": "78213",
+    "lat": 29.5453808,
+    "lon": -98.5121443,
+    "website": "http://www.indiaovensa.com",
+    "menu_url": "http://www.indiaovensa.com/menu",
+    "sample": [
+      "Dal Soup $3.99",
+      "Chicken Soup $4.25",
+      "Tomato Coconut Soup $4.25",
+      "Vegetable Samosas (Two) $4.25"
+    ],
+    "item_count": 111
+  },
+  {
+    "osm_id": "node/12391323189",
+    "name": "Hala Cafe",
+    "cuisine": "indian",
+    "kind": "restaurant",
+    "address": "10865 Shaenfield Road",
+    "city": "San Antonio",
+    "zip": "78254",
+    "lat": 29.520468,
+    "lon": -98.7060501,
+    "website": "https://hala.cafe",
+    "menu_url": "https://hala.cafe/menu",
+    "sample": [
+      "ð¥ Use code 3OFF to save $3.00",
+      "Beef Tikka Plate $18.99",
+      "Chicken Tikka Plate $16.99",
+      "Gyro Plate $16.99"
+    ],
+    "item_count": 87
+  },
+  {
+    "osm_id": "way/370700565",
+    "name": "Pete’s Tako House",
+    "cuisine": "mexican",
+    "kind": "restaurant",
+    "address": "502 Brooklyn Avenue",
+    "city": "San Antonio",
+    "zip": null,
+    "lat": 29.4329084,
+    "lon": -98.4843077,
+    "website": "https://petestakohouse.com",
+    "menu_url": "https://petestakohouse.com/menu",
+    "sample": [
+      "Chili Con Queso $5.49",
+      "Child's Pancake & Egg Plate $7.49",
+      "Huevos Rancheros Plate $8.49",
+      "1/2 Beef Fajitas Nachos $9.99"
+    ],
+    "item_count": 289
+  },
+  {
+    "osm_id": "node/11137318423",
+    "name": "Sukhothai Thai Restaurant Express",
+    "cuisine": "thai",
+    "kind": "restaurant",
+    "address": "7664 Tezel Road",
+    "city": "San Antonio",
+    "zip": "78238",
+    "lat": 29.511567,
+    "lon": -98.6618188,
+    "website": "https://sukhothaisa2.sukhothaisa.com/",
+    "menu_url": "https://sukhothaisa2.sukhothaisa.com/menu/",
+    "sample": [
+      "Extra Chicken, Beef, or Pork + $2.50",
+      "Extra Crispy Pork + $3.50",
+      "Steamed Rice + $2.00",
+      "Sticky Rice + $2.99"
+    ],
+    "item_count": 150
+  },
+  {
+    "osm_id": "node/11810819582",
+    "name": "Casa Rio",
+    "cuisine": null,
+    "kind": "restaurant",
+    "address": "430 East Commerce Street",
+    "city": "San Antonio",
+    "zip": null,
+    "lat": 29.4236599,
+    "lon": -98.4880915,
+    "website": "https://www.casario.com/",
+    "menu_url": "https://www.casario.com/beverage-menu",
+    "sample": [
+      "Cantina $9.50",
+      "Traditional Margarita $9.50",
+      "Casa Rita $10.75",
+      "Spicy Margarita $11.50"
+    ],
+    "item_count": 18
+  },
+  {
+    "osm_id": "node/4631311376",
+    "name": "Magic Time Machine",
+    "cuisine": "american",
+    "kind": "restaurant",
+    "address": "902 Northeast Loop 410",
+    "city": "San Antonio",
+    "zip": "78209",
+    "lat": 29.5159011,
+    "lon": -98.4609205,
+    "website": "https://www.magictimemachine.com/",
+    "menu_url": "https://www.magictimemachine.com/menu",
+    "sample": [
+      "Reg $9.99",
+      "Spinach Artichoke Dip $11.49",
+      "Sausage Stuffed Mushrooms $9.99",
+      "Roman Orgy $21.99"
+    ],
+    "item_count": 69
+  },
+  {
+    "osm_id": "node/11641417286",
+    "name": "Guerrero's Mexican Restaurant",
+    "cuisine": "mexican",
+    "kind": "restaurant",
+    "address": "1859 Rigsby Ave",
+    "city": "San Antonio",
+    "zip": "78210",
+    "lat": 29.3983824,
+    "lon": -98.4342335,
+    "website": "https://guerrerosmexicanrestaurant.com",
+    "menu_url": "https://guerrerosmexicanrestaurant.com/menu/",
+    "sample": [
+      "Ranchero Eggs $11.99",
+      "Mexican-Style Scrambled Eggs $11.99",
+      "Scrambled Eggs with Chorizo $11.99",
+      "Scrambled Eggs with Sausage $11.99"
+    ],
+    "item_count": 119
+  },
+  {
+    "osm_id": "node/6068985025",
+    "name": "Bubba Gump Shrimp Co",
+    "cuisine": "seafood",
+    "kind": "restaurant",
+    "address": "406 Navarro Street",
+    "city": "San Antonio",
+    "zip": "78205",
+    "lat": 29.4254366,
+    "lon": -98.4895402,
+    "website": "https://www.bubbagump.com/location/bubba-gump-san-antonio-tx/",
+    "menu_url": "https://www.bubbagump.com/location/bubba-gump-san-antonio-tx/",
+    "sample": [
+      "Cajun Shrimp $19.99",
+      "Shrimper’s Net Catch $18.99",
+      "Mama Gump’s Garlic Bread Basket $7.49",
+      "Shrimp Shack Mac & Cheese $15.99"
+    ],
+    "item_count": 62
+  },
+  {
+    "osm_id": "way/714627657",
+    "name": "Burger Boy",
+    "cuisine": "burger",
+    "kind": "fast_food",
+    "address": "151 W Bitters Rd",
+    "city": "San Antonio",
+    "zip": "78216",
+    "lat": 29.5662175,
+    "lon": -98.4836578,
+    "website": "https://www.burgerboysa.com/",
+    "menu_url": "https://www.burgerboysa.com/",
+    "sample": [
+      "Burger Boy, Reg. Fries, Reg. Drink $8.99",
+      "Double Boy, Lg. Fries, Lg. Drink $10.59",
+      "Triple Boy, Lg. Fries, Lg. Drink $11.99",
+      "The Part-Timer™: $5.19"
+    ],
+    "item_count": 24
+  },
+  {
+    "osm_id": "node/13972938902",
+    "name": "Taqueria Datapoint",
+    "cuisine": null,
+    "kind": "restaurant",
+    "address": "4061 Medical Drive",
+    "city": "San Antonio",
+    "zip": null,
+    "lat": 29.5183554,
+    "lon": -98.5626166,
+    "website": "https://www.taqueriadatapointmedicaldrive.net/",
+    "menu_url": "https://www.taqueriadatapointmedicaldrive.net/our-menu",
+    "sample": [
+      "CARNE ASADA $14.99",
+      "ASADA A LA MEXICANA $14.99",
+      "ASADA CON RAJAS Y QUESO $14.99",
+      "PLATO COMBINADO $10.99"
+    ],
+    "item_count": 160
+  },
+  {
+    "osm_id": "node/2814595769",
+    "name": "Papouli's Greek Grill",
+    "cuisine": "greek",
+    "kind": "restaurant",
+    "address": "11224 Huebner Road",
+    "city": "San Antonio",
+    "zip": "78230",
+    "lat": 29.5462485,
+    "lon": -98.5760873,
+    "website": "https://www.papoulis.com/",
+    "menu_url": "https://www.papoulis.com/menu/papoulis-greek-forum-8250-agora-pkwy-ste-120",
+    "sample": [
+      "Solo Hummus $5.50",
+      "Duo Hummus $8.83",
+      "Trio Hummus $12.01",
+      "Phyllo Puff Pastry $6.32"
+    ],
+    "item_count": 69
+  },
+  {
+    "osm_id": "node/10757661672",
+    "name": "Taste of India",
+    "cuisine": "indian",
+    "kind": "restaurant",
+    "address": "5999 De Zavala Road",
+    "city": "San Antonio",
+    "zip": "78249",
+    "lat": 29.5641081,
+    "lon": -98.6002376,
+    "website": "http://www.tasteofindiasa.com",
+    "menu_url": "http://www.tasteofindiasa.com/full-menu.html",
+    "sample": [
+      "Served with Mint & Tamarind Chutney) $4.95",
+      "Onion Bhaji (4) $9.95",
+      "Vegetable Pakora (6) $4.95",
+      "Homemade cheese fritters fried in garbanzo batter $11.95"
+    ],
+    "item_count": 87
+  },
+  {
+    "osm_id": "node/12356717256",
+    "name": "Shipley Do-Nuts",
+    "cuisine": "donut",
+    "kind": "fast_food",
+    "address": "6531 FM78",
+    "city": "San Antonio",
+    "zip": "78244",
+    "lat": 29.4814208,
+    "lon": -98.3600466,
+    "website": "https://shipleydonuts.com/locations/6531-fm-78",
+    "menu_url": "https://shipleydonuts.com/locations/6531-fm-78",
+    "sample": [
+      "Sun $1.49",
+      "Bacon, Egg & Cheese Kolache $3.49",
+      "Sausage, Egg & Cheese Kolache $3.49",
+      "Sausage Kolache $2.85"
+    ],
+    "item_count": 51
+  },
+  {
+    "osm_id": "node/12423615010",
+    "name": "Mattenga’s Pizzeria",
+    "cuisine": null,
+    "kind": "restaurant",
+    "address": "2804 Quiet Plain Drive",
+    "city": "San Antonio",
+    "zip": "78245",
+    "lat": 29.4046124,
+    "lon": -98.6807958,
+    "website": "https://www.mattengas.com/",
+    "menu_url": "https://www.mattengas.com/menu",
+    "sample": [
+      "Family (16\") $16.95",
+      "Party (20\") $22.95",
+      "Personal (10\") $9.75",
+      "16\" SUPREME $24.99"
+    ],
+    "item_count": 77
+  },
+  {
+    "osm_id": "node/9670972017",
+    "name": "Cafe Vida",
+    "cuisine": null,
+    "kind": "cafe",
+    "address": "2711 Treble Creek",
+    "city": "San Antonio",
+    "zip": "78258",
+    "lat": 29.6045985,
+    "lon": -98.536926,
+    "website": "https://www.cafevidasa.com/",
+    "menu_url": "https://www.cafevidasa.com/menu",
+    "sample": [
+      "Breakfast Quesadilla $14.49",
+      "California Scramble $14.49",
+      "Protein Plate $15.49",
+      "★ Breakfast Balance Bowl $15.49"
+    ],
+    "item_count": 74
+  },
+  {
+    "osm_id": "way/1329146606",
+    "name": "J's Eatery",
+    "cuisine": null,
+    "kind": "restaurant",
+    "address": "734 North New Braunfels Avenue",
+    "city": "San Antonio",
+    "zip": "78202",
+    "lat": 29.4287834,
+    "lon": -98.4609124,
+    "website": "https://jseatery.com/",
+    "menu_url": "https://jseatery.com/menu",
+    "sample": [
+      "Baked Spaghetti $16.99",
+      "(4) Jumbo Shrimp and Grits $19.59",
+      "(4) Jumbo Wings & 2 Sides $15.99",
+      "Smothered Baked Chicken with Rice $9.99"
+    ],
+    "item_count": 87
+  },
+  {
+    "osm_id": "node/13311901301",
+    "name": "San Antonio Burger",
+    "cuisine": "burger",
+    "kind": "restaurant",
+    "address": "8440 Fredericksburg Road",
+    "city": "San Antonio",
+    "zip": "78229",
+    "lat": 29.5189802,
+    "lon": -98.5722466,
+    "website": "https://saburgers.com/",
+    "menu_url": "https://saburgers.com/menu",
+    "sample": [
+      "🍔 100% BLACK ANGUS BEEF BURGERS $6.25",
+      "Price $7.95",
+      "Cheese Burger $8.95",
+      "Mango Habanero Cheeseburger $9.25"
+    ],
+    "item_count": 93
+  },
+  {
+    "osm_id": "node/12356308252",
+    "name": "Capo’s Pizza",
+    "cuisine": "pizza",
+    "kind": "restaurant",
+    "address": "4263 Northwest Loop 410",
+    "city": "San Antonio",
+    "zip": "78229",
+    "lat": 29.4902054,
+    "lon": -98.5679011,
+    "website": "https://www.capospizzerias.com/babcock",
+    "menu_url": "https://www.capospizzerias.com/menu",
+    "sample": [
+      "All Day Deal $16.95",
+      "Supremo Pizza $19.95",
+      "Deck Oven Style Pizza $13.95",
+      "Goombah Pizza $19.95"
+    ],
+    "item_count": 67
+  },
+  {
+    "osm_id": "node/13946426863",
+    "name": "Demo's Greek Food",
+    "cuisine": "greek",
+    "kind": "restaurant",
+    "address": "1205 North Loop 1604 West",
+    "city": "San Antonio",
+    "zip": "78232",
+    "lat": 29.6107225,
+    "lon": -98.5113847,
+    "website": "https://www.demosgreekfood.com",
+    "menu_url": "https://www.demosgreekfood.com/menu",
+    "sample": [
+      "Side Orders $2.00",
+      "Fresh Salads + Soups $6.00",
+      "Fish $13.00",
+      "Gyro Wrap $9.00"
+    ],
+    "item_count": 16
+  },
+  {
+    "osm_id": "node/14074659673",
+    "name": "Bilia Eatery",
+    "cuisine": "cuban;latin_american",
+    "kind": "restaurant",
+    "address": "1900 Northwest Military Highway",
+    "city": "Castle Hills",
+    "zip": "78213",
+    "lat": 29.5281393,
+    "lon": -98.5197177,
+    "website": "https://eatbilia.com/",
+    "menu_url": "https://eatbilia.com/menu",
+    "sample": [
+      "Havana Bowl $15.00",
+      "Cuban Sandwich $14.00",
+      "Peruvian Chicken $16.00",
+      "Barbacoa Melt $14.00"
+    ],
+    "item_count": 53
+  },
+  {
+    "osm_id": "node/2207160073",
+    "name": "Adelante Mexican Food",
+    "cuisine": "mexican",
+    "kind": "restaurant",
+    "address": "21 Brees Boulevard",
+    "city": "San Antonio",
+    "zip": "78209",
+    "lat": 29.4907903,
+    "lon": -98.4585554,
+    "website": "https://www.adelanterestaurant.com/",
+    "menu_url": "https://www.adelanterestaurant.com/",
+    "sample": [
+      "Cup $5.75",
+      "Fried sweet potatoes $4.25",
+      "Chips & hot sauce $2.00",
+      "Guacamole & Chips $5.25"
+    ],
+    "item_count": 80
+  },
+  {
+    "osm_id": "node/8645287533",
+    "name": "Guadalajara Grill",
+    "cuisine": "mexican",
+    "kind": "restaurant",
+    "address": null,
+    "city": "San Antonio",
+    "zip": null,
+    "lat": 29.4216069,
+    "lon": -98.4881626,
+    "website": "https://guadalajaragrill.us/",
+    "menu_url": "https://guadalajaragrill.us/our-menu/",
+    "sample": [
+      "SUPERNACHOS $13.00",
+      "BEAN & CHEESE NACHOS $11.00",
+      "NACHOS DEL BOSQUE $15.95",
+      "CHILE CON QUESO $8.95"
+    ],
+    "item_count": 63
+  },
+  {
+    "osm_id": "node/14143276301",
+    "name": "MAAR's PIZZA",
+    "cuisine": "pizza",
+    "kind": "restaurant",
+    "address": "14218 Nacogdoches Road",
+    "city": "San Antonio",
+    "zip": "78247",
+    "lat": 29.5707759,
+    "lon": -98.3812663,
+    "website": "https://maarspizzaandmore.com/",
+    "menu_url": "https://maarspizzaandmore.com/menu/maarspizza",
+    "sample": [
+      "OUT OF STOCK $4.25",
+      "OUT OF STOCK $2.50",
+      "Cheesy Bread $11.99",
+      "Full Garlic Knots $5.99"
+    ],
+    "item_count": 121
+  },
+  {
+    "osm_id": "way/1203820624",
+    "name": "Tank's Pizza",
+    "cuisine": "pizza",
+    "kind": "restaurant",
+    "address": "902 North New Braunfels Avenue",
+    "city": "San Antonio",
+    "zip": null,
+    "lat": 29.4304675,
+    "lon": -98.4608052,
+    "website": "https://www.tankspizzamenu.com/",
+    "menu_url": "https://www.tankspizzamenu.com/",
+    "sample": [
+      "Side Salad $4.99",
+      "Best Seller $8.50",
+      "Best Seller $17.50",
+      "Best Seller $8.50"
+    ],
+    "item_count": 25
   }
 ]

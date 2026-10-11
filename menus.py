@@ -30,7 +30,7 @@ NOT_DISHES = re.compile(r"\b(tax|tip|delivery|fee|gratuity|gift card|catering mi
 NOT_NAMES = re.compile(
     r"^(menu|favorites|specials?|starting at|from|only|all items|try our|new!?|serves \d|each|"
     r"\d+\s*(for|pc|pcs|piece|pieces)\b|(small|medium|large|mild|hot|regular)$)|"
-    r"carousel|for sharing|menu$|happy hour|established|now hiring|most ordered|after party|^(lunch|dinner|breakfast|brunch|kids?)$|\bonly \$|click|order now|learn more|download|promotions?\b|both sides",
+    r"carousel|for sharing|menu$|happy hour|established|now hiring|most ordered|after party|out of stock|sold out|use code|save \$|^price$|^reg\.?$|best seller|all day deal|side orders|^(sun|mon|tues|wednes|thurs|fri|satur)day$|^(sun|mon|tue|wed|thu|fri|sat)$|^(lunch|dinner|breakfast|brunch|kids?)$|\bonly \$|click|order now|learn more|download|promotions?\b|both sides",
     re.I,
 )
 
@@ -106,6 +106,8 @@ class PoliteFetcher:
             return None
         if response.status_code != 200 or "html" not in response.headers.get("content-type", ""):
             return None
+        if "charset" not in response.headers.get("content-type", "").lower():
+            response.encoding = response.apparent_encoding  # sites without a charset are usually UTF-8
         return response.text
 
 
