@@ -128,3 +128,37 @@ export async function searchProducts(term: string, locationId: string | null, li
     };
   });
 }
+
+export type StorePrice = { price: number; regular: number; onSale: boolean };
+
+/**
+ * Current prices for specific products at one store, keyed by productId.
+ * Products the store doesn't carry are left out. Up to 50 ids per Kroger call;
+ * cached for a few hours per store and set of products.
+ */
+export async function getProductPrices(productIds: string[], locationId: string): Promise<Record<string, StorePrice>> {
+  "use cache";
+  cacheLife("hours");
+
+  const prices: Record<string, StorePrice> = {};
+  for (let start = 0; start < productIds.length; start += 50) {
+    const params = new URLSearchParams({
+      "filter.productId": productIds.slice(start, start + 50).join(","),
+      "filter.locationId": locationId,
+      "filter.limit": "50",
+    });
+    const response = await fetch(`${BASE_URL}/v1/products?${params}`, {
+      headers: { Authorization: `Bearer ${await getToken()}` },
+    });
+    if (!response.ok) throw new Error(`Kroger price lookup failed: ${response.status}`);
+    const { data } = (await response.json()) as { data: KrogerProduct[] };
+    for (const product of data) {
+      const regular = product.items?.[0]?.price?.regular;
+      const promo = product.items?.[0]?.price?.promo;
+      if (!regular) continue; // listed but no price at this store
+      const onSale = !!promo && promo < regular;
+      prices[product.productId] = { price: onSale ? promo! : regular, regular, onSale };
+    }
+  }
+  return prices;
+}
