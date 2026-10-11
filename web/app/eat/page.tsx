@@ -27,6 +27,17 @@ export default async function EatPage() {
         website{latest && <> (last checked {shortDay(latest.slice(0, 10))})</>}. Prices can change, so check with the
         restaurant before you go.
       </p>
+      <p className="mb-6 rounded-2xl border border-line bg-surface p-4 text-sm text-ink-2">
+        <strong className="text-ink">Ordering delivery?</strong> Save menus from DoorDash, Uber Eats or Grubhub as you
+        browse and compare which app is cheapest:{" "}
+        <a href="/save" className="font-medium text-accent hover:underline">
+          get the Save button
+        </a>{" "}
+        ·{" "}
+        <a href="/my-menus" className="font-medium text-accent hover:underline">
+          my saved menus
+        </a>
+      </p>
       <EatSearch dishes={dishes} />
       <p className="mt-8 text-xs text-muted">
         Restaurant owner? To update or remove your menu, email{" "}

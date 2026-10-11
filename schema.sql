@@ -342,6 +342,42 @@ order by p.menu_item_id, p.fetched_at desc;
 grant select on latest_menu_prices to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
+-- Saved menus (added 2026-10-12): menus a user saves from a delivery app page
+-- they're viewing (DoorDash, Uber Eats, ...) with the "Save to Cheaper Eats"
+-- button. Private: each user sees only their own.
+-- ---------------------------------------------------------------------------
+create table if not exists saved_menus (
+    id               bigint generated always as identity primary key,
+    user_id          uuid not null references auth.users(id) on delete cascade,
+    app              text not null,          -- 'doordash', 'ubereats', 'grubhub', or the site's name
+    restaurant_name  text not null,
+    page_url         text,
+    saved_at         timestamptz not null default now()
+);
+create index if not exists saved_menus_user on saved_menus (user_id);
+
+create table if not exists saved_menu_items (
+    id              bigint generated always as identity primary key,
+    saved_menu_id   bigint not null references saved_menus(id) on delete cascade,
+    name            text not null,
+    description     text,
+    price           numeric not null check (price >= 0)
+);
+create index if not exists saved_menu_items_menu on saved_menu_items (saved_menu_id);
+
+alter table saved_menus      enable row level security;
+alter table saved_menu_items enable row level security;
+drop policy if exists "own saved menus" on saved_menus;
+create policy "own saved menus" on saved_menus for all to authenticated
+    using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+drop policy if exists "own saved menu items" on saved_menu_items;
+create policy "own saved menu items" on saved_menu_items for all to authenticated
+    using (exists (select 1 from saved_menus m where m.id = saved_menu_id and m.user_id = (select auth.uid())))
+    with check (exists (select 1 from saved_menus m where m.id = saved_menu_id and m.user_id = (select auth.uid())));
+revoke all on saved_menus, saved_menu_items from anon;
+grant select, insert, update, delete on saved_menus, saved_menu_items to authenticated;
+
+-- ---------------------------------------------------------------------------
 -- Benchmarks (added 2026-10-10): official average prices to compare against,
 -- e.g. the Bureau of Labor Statistics' monthly U.S. city average prices.
 -- Unlike prices, rows are updated in place, because the BLS revises its numbers.

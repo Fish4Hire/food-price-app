@@ -44,6 +44,10 @@ export default function PrivacyPage() {
             <strong>Your shopping lists</strong>: the items and quantities you add.
           </li>
           <li>
+            <strong>Menus you save</strong> with the &ldquo;Save to Cheaper Eats&rdquo; button: the restaurant name, the
+            page address, and the dishes and prices that were on your screen. Only you can see them.
+          </li>
+          <li>
             <strong>Basic account records</strong>, such as when you signed up and last signed in.
           </li>
         </ul>
@@ -123,7 +127,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             We keep your account information until you delete your account. You can delete it at any time on your{" "}
-            <Link href="/account">account page</Link>: your account, ZIP code, address and lists are deleted immediately. If you
+            <Link href="/account">account page</Link>: your account, ZIP code, address, lists and saved menus are deleted immediately. If you
             can&apos;t sign in, email <ContactLink /> from the address you signed up with and we&apos;ll delete it within 30
             days.
           </li>
