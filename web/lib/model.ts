@@ -2,7 +2,7 @@
 
 import { houstonTime, longDay, monthLabel } from "./format";
 import type { PriceData } from "./data";
-import type { Benchmark, BenchmarkRow, DashboardItem, DashboardModel, Listing, Metro, Offer, Point, Store } from "./types";
+import type { Benchmark, BenchmarkRow, DashboardItem, DashboardModel, Deal, Listing, Metro, Offer, Point, Store } from "./types";
 
 /** The stores being compared: one store's id, or every store in a city. */
 export type StoreChoice = number[];
@@ -117,9 +117,24 @@ export function buildDashboard(data: PriceData, stores: Store[] = visibleStores(
     (latest, listing) => (listing.fetched_at > latest ? listing.fetched_at : latest),
     "",
   );
+  const names = new Map(products.map((p) => [p.id, p.name]));
+  const deals: Deal[] = listings
+    .filter((l) => l.promo_price !== null && l.promo_price < l.regular_price)
+    .map((l) => ({
+      slug: l.slug,
+      itemName: names.get(l.product_id) ?? "",
+      storeItemId: l.store_item_id,
+      storeId: l.location_id,
+      description: l.description,
+      size: l.size,
+      price: l.promo_price!,
+      regular: l.regular_price,
+    }));
+
   return {
     stores,
     metros: groupMetros(stores),
+    deals,
     items,
     updatedLabel: latestFetch ? houstonTime(latestFetch) : "not yet",
     trackingSinceLabel: days.length ? longDay(days[0]) : "today",
@@ -167,6 +182,21 @@ export function weeklyChange(points: Point[]): number | null {
   const earlier = [...points].reverse().find(([day]) => day <= cutoff);
   if (!earlier) return null;
   return (lastValue - earlier[1]) / earlier[1];
+}
+
+/**
+ * The best deals at the chosen stores: biggest percentage off first. A product on
+ * sale at several of the stores is listed once, at its lowest price.
+ */
+export function topDeals(deals: Deal[], choice: StoreChoice, limit = 6): Deal[] {
+  const best = new Map<number, Deal>();
+  for (const deal of deals) {
+    if (!choice.includes(deal.storeId)) continue;
+    const current = best.get(deal.storeItemId);
+    if (!current || deal.price < current.price) best.set(deal.storeItemId, deal);
+  }
+  const off = (d: Deal) => (d.regular - d.price) / d.regular;
+  return [...best.values()].filter((d) => off(d) >= 0.05).sort((a, b) => off(b) - off(a)).slice(0, limit);
 }
 
 /** What one week's basket costs: price per unit x basket quantity, summed. */

@@ -8,11 +8,13 @@ import {
   basketVsBenchmark,
   pickHistory,
   pickOffer,
+  topDeals,
   weeklyChange,
 } from "@/lib/model";
 import type { Personalization } from "@/lib/personal";
 import type { DashboardItem, DashboardModel } from "@/lib/types";
 import { CostBars } from "./CostBars";
+import { DealsStrip } from "./DealsStrip";
 import { Sparkline } from "./Sparkline";
 
 type Sort = "category" | "price-low" | "price-high" | "change";
@@ -31,6 +33,7 @@ export function Dashboard({ model }: { model: DashboardModel }) {
   const area = personal?.status === "tracked" ? (personal.area ?? null) : null;
   const stores = useMemo(() => (area ? [...model.stores, ...area.stores] : model.stores), [model.stores, area]);
   const metros = useMemo(() => (area ? [...model.metros, area.metro] : model.metros), [model.metros, area]);
+  const allDeals = useMemo(() => (area ? [...model.deals, ...area.deals] : model.deals), [model.deals, area]);
   const items = useMemo(() => {
     if (!area) return model.items;
     return model.items.map((item) => {
@@ -302,6 +305,11 @@ export function Dashboard({ model }: { model: DashboardModel }) {
           </label>
         </div>
       </section>
+
+      <DealsStrip
+        deals={topDeals(allDeals, store)}
+        storeLabel={(id) => (storeId === "all" && metroStores.length > 1 ? shortStore(stores.find((s) => s.id === id)?.name ?? "") : null)}
+      />
 
       {/* Items */}
       <section className="mt-6 overflow-hidden rounded-2xl border border-line bg-surface">

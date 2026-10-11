@@ -42,6 +42,42 @@ def user_home_zips(client):
         start += 1000
 
 
+def list_products_by_zip(client):
+    """
+    The specific products on users' shopping lists, grouped by the owner's home ZIP:
+    {zip: {productId, ...}}. Needs the secret key (lists and profiles are private).
+    """
+    zips, start = {}, 0
+    while True:
+        page = (
+            client.table("profiles").select("id, home_zip")
+            .not_.is_("home_zip", "null").order("id").range(start, start + 999).execute().data
+        )
+        zips.update({row["id"]: row["home_zip"] for row in page})
+        if len(page) < 1000:
+            break
+        start += 1000
+
+    by_zip, start = {}, 0
+    while True:
+        page = (
+            client.table("list_items")
+            .select("kroger_product_id, shopping_lists!inner(user_id)")
+            .not_.is_("kroger_product_id", "null")
+            .order("id")
+            .range(start, start + 999)
+            .execute()
+            .data
+        )
+        for row in page:
+            zip_code = zips.get(row["shopping_lists"]["user_id"])
+            if zip_code:
+                by_zip.setdefault(zip_code, set()).add(row["kroger_product_id"])
+        if len(page) < 1000:
+            return by_zip
+        start += 1000
+
+
 def upsert_location(client, row):
     """Insert a store, or update it if we already have it. Returns its database id."""
     result = (

@@ -56,6 +56,7 @@ export async function getPersonalization(): Promise<Personalization> {
         metro: { name, storeIds: areaStores.map((s) => s.id) },
         stores: model.stores.map((s) => ({ ...s, metro: name })),
         items: model.items.map(({ slug, offers, history }) => ({ slug, offers, history })),
+        deals: model.deals,
       },
     };
   }

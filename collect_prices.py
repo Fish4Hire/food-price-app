@@ -43,6 +43,8 @@ ITEMS_PER_SEARCH = 50
 MAX_STORES = 100           # featured + user stores, in total: ~2,100 product calls a day
 MAX_USER_ZIPS = 500        # ZIPs looked up per run
 USER_RADIUS_MILES = 25     # how far a "nearby" store can be
+LIST_STORES_PER_USER = 4   # stores compared for each user's list (matches the website)
+MAX_LIST_PRODUCTS = 2000   # distinct shopping-list products priced per run
 
 
 def is_real_store(store):
@@ -150,6 +152,7 @@ def collect_store(client, token, store, metro, slug_to_id, tracking="featured"):
     matched_items = {listing["product_id"] for listing, _, _, _ in found.values()}
     print(f"  {store['name']} ({store['locationId']}): saved {len(rows)} prices "
           f"covering {len(matched_items)} of {len(basket.BASKET)} basket items")
+    return location_id, set(found)  # database id, and the products already saved here
 
 
 def featured_stores(token):
@@ -165,11 +168,12 @@ def featured_stores(token):
     return picked
 
 
-def user_stores(client, token, covered_ids, room):
+def user_stores(client, token, covered_ids, room, zip_nearby):
     """
     Stores to add for users' home ZIPs: for each ZIP with no collected store nearby,
     its nearest store. Stores needed by more ZIPs come first; at most `room` stores.
-    Returns [(store, area name), ...]. ZIPs are private, so this never prints them.
+    Returns [(store, area name), ...], and fills zip_nearby with each ZIP's nearby
+    store ids (nearest first). ZIPs are private, so this never prints them.
     """
     zips = db.user_home_zips(client)[:MAX_USER_ZIPS]
     chosen = {}  # locationId -> {"store": ..., "zips": count}
@@ -179,6 +183,7 @@ def user_stores(client, token, covered_ids, room):
             s for s in kroger_api.find_nearest_stores(token, zip_code, 8, radius_miles=USER_RADIUS_MILES)
             if is_real_store(s)
         ]
+        zip_nearby[zip_code] = [s["locationId"] for s in nearby]
         if not nearby:
             no_stores += 1
             continue
@@ -202,6 +207,50 @@ def area_name(store):
     return f"{addr.get('city', '').title()}, {addr.get('state', '')}"
 
 
+def collect_list_products(client, token, zip_nearby, collected):
+    """
+    Save today's prices for the specific products on users' shopping lists, at
+    each user's nearby collected stores (the same stores the website compares).
+    Products already saved at a store this run (via the basket searches) are skipped.
+    """
+    wanted = {}  # Kroger locationId -> set of productIds
+    lists = db.list_products_by_zip(client)
+    for zip_code, product_ids in lists.items():
+        stores = [loc for loc in zip_nearby.get(zip_code, []) if loc in collected][:LIST_STORES_PER_USER]
+        for loc in stores:
+            wanted.setdefault(loc, set()).update(product_ids)
+
+    all_products = set().union(*wanted.values()) if wanted else set()
+    if len(all_products) > MAX_LIST_PRODUCTS:
+        keep = set(sorted(all_products)[:MAX_LIST_PRODUCTS])
+        wanted = {loc: ids & keep for loc, ids in wanted.items()}
+        print(f"List products over budget: pricing {MAX_LIST_PRODUCTS} of {len(all_products)}.")
+
+    saved = 0
+    for loc, product_ids in wanted.items():
+        location_id, already = collected[loc]
+        todo = sorted(product_ids - already)
+        if not todo:
+            continue
+        fetched_at = datetime.now(timezone.utc).isoformat()
+        listings = []
+        for start in range(0, len(todo), 50):  # Kroger allows 50 product ids per call
+            for product in kroger_api.products_by_id(token, loc, todo[start:start + 50]):
+                item = (product.get("items") or [{}])[0]
+                if not (item.get("price") or {}).get("regular"):
+                    continue  # no price at this store
+                listing = store_item_row(product, item, product_id=None)
+                del listing["product_id"]  # never unlink a listing that's also a basket staple
+                listings.append((listing, item))
+        ids = db.upsert_store_items(client, [listing for listing, _ in listings])
+        rows = [price_row(item, ids[listing["external_id"]], location_id, "list", fetched_at)
+                for listing, item in listings]
+        db.insert_prices(client, rows)
+        saved += len(rows)
+    print(f"\nShopping lists: {len(lists)} ZIP(s) with list products; saved {saved} "
+          f"list-product prices at {len(wanted)} store(s).")
+
+
 def main():
     load_dotenv()
     client = db.get_client()
@@ -210,15 +259,19 @@ def main():
 
     featured = featured_stores(token)
     covered = {store["locationId"] for store, _ in featured}
-    users = user_stores(client, token, covered, room=max(0, MAX_STORES - len(featured)))
+    zip_nearby = {}
+    users = user_stores(client, token, covered, max(0, MAX_STORES - len(featured)), zip_nearby)
 
+    collected = {}  # Kroger locationId -> (database location id, products already saved there)
     for tracking, group in (("featured", featured), ("user", users)):
         current = None
         for store, metro in group:
             if metro != current:
                 print(f"\n{metro}" + (" (user area)" if tracking == "user" else ""))
                 current = metro
-            collect_store(client, token, store, metro, slug_to_id, tracking)
+            collected[store["locationId"]] = collect_store(client, token, store, metro, slug_to_id, tracking)
+
+    collect_list_products(client, token, zip_nearby, collected)
 
     print(f"\nDone. {len(featured)} featured + {len(users)} user-area stores. "
           f"Kroger API calls this run: {kroger_api.api_calls}")

@@ -96,6 +96,21 @@ def find_nearest_stores(token, zip_code, limit, chain=None, radius_miles=None):
     return data["data"]
 
 
+def products_by_id(token, location_id, product_ids):
+    """Up to 50 specific products (by productId) with this store's prices."""
+    data = call_api(
+        "GET",
+        "/v1/products",
+        headers={"Authorization": f"Bearer {token}"},
+        params={
+            "filter.productId": ",".join(product_ids),
+            "filter.locationId": location_id,
+            "filter.limit": 50,
+        },
+    )
+    return data["data"]
+
+
 def search_products(token, location_id, term, limit):
     """Search a store's products. Prices only come back because we pass locationId."""
     data = call_api(

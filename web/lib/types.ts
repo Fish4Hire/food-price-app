@@ -86,16 +86,30 @@ export type DashboardItem = {
   benchmark: Benchmark | null;         // U.S. average, if the BLS tracks this item
 };
 
+/** A basket product on sale at one store right now. */
+export type Deal = {
+  slug: string; // basket item, for linking to its page
+  itemName: string;
+  storeItemId: number;
+  storeId: number;
+  description: string;
+  size: string | null;
+  price: number; // sale price
+  regular: number;
+};
+
 /** Prices for a user's own area (stores added for their home ZIP), sent only to them. */
 export type DashboardArea = {
   metro: Metro;
   stores: Store[];
   items: Pick<DashboardItem, "slug" | "offers" | "history">[];
+  deals: Deal[];
 };
 
 export type DashboardModel = {
   stores: Store[];
   metros: Metro[];
+  deals: Deal[]; // every basket product on sale at these stores
   items: DashboardItem[];
   updatedLabel: string;
   trackingSinceLabel: string;
