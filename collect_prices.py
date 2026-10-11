@@ -10,7 +10,8 @@ For each store it searches every basket item and saves only listings that match
 a basket item's rules:
   - each store            -> locations   (added once, refreshed on later runs)
   - each matching listing -> store_items (added once, refreshed, linked to its product)
-  - each price we see     -> prices      (a NEW row every run, never overwritten)
+  - each price we see     -> prices      (a new row when the price changes; otherwise
+                                             the existing row's checked_through moves forward)
 
 Run it with:  python collect_prices.py
 """
@@ -147,11 +148,12 @@ def collect_store(client, token, store, metro, slug_to_id, tracking="featured"):
         price_row(item, ids[listing["external_id"]], location_id, term, fetched_at)
         for listing, item, term, fetched_at in found.values()
     ]
-    db.insert_prices(client, rows)
+    added, confirmed = db.record_prices(client, rows)
 
     matched_items = {listing["product_id"] for listing, _, _, _ in found.values()}
-    print(f"  {store['name']} ({store['locationId']}): saved {len(rows)} prices "
-          f"covering {len(matched_items)} of {len(basket.BASKET)} basket items")
+    print(f"  {store['name']} ({store['locationId']}): checked {len(rows)} prices "
+          f"({added} changed or new, {confirmed} unchanged) covering {len(matched_items)} "
+          f"of {len(basket.BASKET)} basket items")
     return location_id, set(found)  # database id, and the products already saved here
 
 
@@ -245,9 +247,9 @@ def collect_list_products(client, token, zip_nearby, collected):
         ids = db.upsert_store_items(client, [listing for listing, _ in listings])
         rows = [price_row(item, ids[listing["external_id"]], location_id, "list", fetched_at)
                 for listing, item in listings]
-        db.insert_prices(client, rows)
-        saved += len(rows)
-    print(f"\nShopping lists: {len(lists)} ZIP(s) with list products; saved {saved} "
+        added, _ = db.record_prices(client, rows)
+        saved += added
+    print(f"\nShopping lists: {len(lists)} ZIP(s) with list products; saved {saved} changed or new "
           f"list-product prices at {len(wanted)} store(s).")
 
 

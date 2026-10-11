@@ -37,7 +37,10 @@ SUPABASE_DB_URL=   # Session pooler connection string; used by run_sql.py to app
 ## Database design principles
 - `locations` table: every store/restaurant with lat/long and address (gas, transit and trips build on this later)
 - `products` (canonical items, e.g. "milk, 2%, 1 gal") separate from `store_items` (a store's specific listing/UPC)
-- `prices` table: append-only history; every check is a new row with a timestamp. Never overwrite.
+- `prices` table: append-only history stored as changes (owner's decision, 2026-10-12, to save space):
+  a new row when a price changes; while it stays the same, that row's `checked_through` moves forward
+  (each row = this price from `fetched_at` through `checked_through`). Old prices are never edited or
+  deleted; the database only allows moving `checked_through` forward. Use `record_prices()` to save.
 - Store size + unit so price-per-unit comparisons work
 - Track the source and fetch time of every price
 

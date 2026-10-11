@@ -182,10 +182,19 @@ def upsert_benchmarks(client, rows):
         client.table("benchmark_prices").upsert(rows, on_conflict="series_id,period").execute()
 
 
-def insert_prices(client, rows):
-    """Add price rows. Always inserts new rows; never changes old ones."""
-    if rows:
-        client.table("prices").insert(rows).execute()
+def record_prices(client, rows):
+    """
+    Record price checks. A price that changed gets a new row; an unchanged price just
+    has its existing row's checked_through moved forward (see record_prices in schema.sql).
+    Returns (added, confirmed).
+    """
+    added = confirmed = 0
+    for start in range(0, len(rows), 500):
+        result = client.rpc("record_prices", {"p_rows": rows[start:start + 500]}).execute().data
+        counts = result[0] if isinstance(result, list) else result
+        added += counts["added"]
+        confirmed += counts["confirmed"]
+    return added, confirmed
 
 
 def check_connection():

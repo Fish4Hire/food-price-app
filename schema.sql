@@ -78,10 +78,22 @@ create index if not exists prices_item_location_time
     on prices (store_item_id, location_id, fetched_at desc);
 
 -- Enforce "never overwrite": block UPDATE and DELETE on prices.
+-- Price history is stored as changes (decided 2026-10-12 to save space): a new
+-- row when a price changes; while it stays the same, the row's checked_through
+-- moves forward. So each row means "this price from fetched_at through
+-- checked_through". Old prices themselves can never be edited or deleted.
+alter table prices add column if not exists checked_through timestamptz;
+
 create or replace function prices_block_changes() returns trigger
 language plpgsql as $$
 begin
-    raise exception 'prices is append-only: insert a new row instead';
+    -- The only allowed edit: moving checked_through forward (the price was seen again).
+    if tg_op = 'UPDATE'
+       and (to_jsonb(new) - 'checked_through') = (to_jsonb(old) - 'checked_through')
+       and new.checked_through >= coalesce(old.checked_through, old.fetched_at) then
+        return new;
+    end if;
+    raise exception '% is append-only: insert a new row instead', tg_table_name;
 end;
 $$;
 
@@ -89,6 +101,53 @@ drop trigger if exists prices_append_only on prices;
 create trigger prices_append_only
     before update or delete on prices
     for each row execute function prices_block_changes();
+
+-- Rows saved before this change were each seen once.
+update prices set checked_through = fetched_at where checked_through is null;
+
+-- Record a batch of price checks (JSON list of price rows, as the collector builds
+-- them). For each listing at each store: if the latest saved price is the same,
+-- extend its checked_through; otherwise add a new row. Returns counts.
+create or replace function record_prices(p_rows jsonb)
+returns table (added integer, confirmed integer)
+language plpgsql security definer set search_path = public
+as $$
+declare
+    r jsonb;
+    last_id bigint;
+    last_regular numeric;
+    last_promo numeric;
+    seen_at timestamptz;
+begin
+    added := 0;
+    confirmed := 0;
+    for r in select * from jsonb_array_elements(p_rows) loop
+        seen_at := (r->>'fetched_at')::timestamptz;
+        select id, regular_price, promo_price into last_id, last_regular, last_promo
+        from prices
+        where store_item_id = (r->>'store_item_id')::bigint and location_id = (r->>'location_id')::bigint
+        order by fetched_at desc
+        limit 1;
+        if last_id is not null
+           and last_regular is not distinct from (r->>'regular_price')::numeric
+           and last_promo is not distinct from (r->>'promo_price')::numeric then
+            update prices set checked_through = greatest(checked_through, seen_at) where id = last_id;
+            confirmed := confirmed + 1;
+        else
+            insert into prices (store_item_id, location_id, regular_price, promo_price, regular_per_unit,
+                                promo_per_unit, stock_level, source, search_term, fetched_at, checked_through)
+            values ((r->>'store_item_id')::bigint, (r->>'location_id')::bigint,
+                    (r->>'regular_price')::numeric, (r->>'promo_price')::numeric,
+                    (r->>'regular_per_unit')::numeric, (r->>'promo_per_unit')::numeric,
+                    r->>'stock_level', r->>'source', r->>'search_term', seen_at, seen_at);
+            added := added + 1;
+        end if;
+    end loop;
+    return next;
+end;
+$$;
+revoke all on function record_prices(jsonb) from public, anon, authenticated;
+grant execute on function record_prices(jsonb) to service_role;
 
 -- ---------------------------------------------------------------------------
 -- Basket (added 2026-10-10): canonical products, normalized sizes, and a view
@@ -116,9 +175,10 @@ create view latest_listing_prices with (security_invoker = true) as
 with recent as (
     select distinct on (p.location_id, p.store_item_id)
         p.location_id, p.store_item_id, p.regular_price, p.promo_price,
-        coalesce(p.promo_price, p.regular_price) as price, p.fetched_at
+        coalesce(p.promo_price, p.regular_price) as price,
+        coalesce(p.checked_through, p.fetched_at) as fetched_at  -- when it was last confirmed
     from prices p
-    where p.fetched_at > now() - interval '3 days'
+    where coalesce(p.checked_through, p.fetched_at) > now() - interval '3 days'  -- still being seen
     order by p.location_id, p.store_item_id, p.fetched_at desc
 )
 select pr.id as product_id, pr.slug, pr.name as product, pr.category, pr.unit_label,
@@ -143,14 +203,19 @@ order by product_id, location_id, price_per_unit, price;
 -- Days are in Houston time (America/Chicago).
 create view basket_price_history with (security_invoker = true) as
 select si.product_id, pr.slug, p.location_id,
-       (p.fetched_at at time zone 'America/Chicago')::date as day,
+       d.day::date as day,
        round(min(coalesce(p.promo_price, p.regular_price) / (si.base_qty / pr.unit_base_qty)), 4)
            as price_per_unit
 from prices p
 join store_items si on si.id = p.store_item_id
 join products pr on pr.id = si.product_id
+-- one row per day the price was in effect (from first seen through last confirmed)
+cross join lateral generate_series(
+    (p.fetched_at at time zone 'America/Chicago')::date,
+    (coalesce(p.checked_through, p.fetched_at) at time zone 'America/Chicago')::date,
+    interval '1 day') as d(day)
 where pr.active and si.base_qty > 0
-group by si.product_id, pr.slug, p.location_id, day;
+group by si.product_id, pr.slug, p.location_id, d.day;
 
 grant select on latest_listing_prices, latest_basket_prices, basket_price_history
     to anon, authenticated;
