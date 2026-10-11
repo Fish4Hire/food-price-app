@@ -17,7 +17,7 @@ const SCRIPT = `
     var c = el;
     for (var up = 0; up < 6 && c; up++) {
       c = c.parentElement;
-      if (!c) break;
+      if (!c || c.querySelector("input, select, textarea")) break; // filters and forms aren't dishes
       var lines = (c.innerText || "").split("\\n").map(function (s) { return s.trim(); }).filter(Boolean);
       var name = null, desc = "";
       for (var i = 0; i < lines.length; i++) {

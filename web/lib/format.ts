@@ -6,6 +6,7 @@ export function money(value: number): string {
 
 /** Price per unit: "$2.69/gal", or cents for small units: "7.4¢/oz". */
 export function perUnit(value: number, unit: string): string {
+  if (unit === "each") return `${money(value)} each`;
   if ((unit === "oz" || unit === "fl oz") && value < 1) {
     return `${(value * 100).toFixed(1)}¢/${unit}`;
   }

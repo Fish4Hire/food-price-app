@@ -41,6 +41,15 @@ BLS_SERIES = {
     "cheddar-8oz":         ("APU0000710212", "lb"),     # Cheddar cheese, natural
     "butter-1lb":          ("APU0000FS1101", "lb"),     # Butter, stick
     "coffee-ground":       ("APU0000717311", "lb"),     # Coffee, 100%, ground roast
+    # Added 2026-10-12 with the bigger basket
+    "tomatoes-roma-lb":    ("APU0000712311", "lb"),     # Tomatoes, field grown
+    "oranges-navel-lb":    ("APU0000711311", "lb"),     # Oranges, navel
+    "bacon-1lb":           ("APU0000704111", "lb"),     # Bacon, sliced
+    "pork-chops-lb":       ("APU0000704212", "lb"),     # Pork chops, boneless
+    "whole-chicken-lb":    ("APU0000706111", "lb"),     # Chicken, fresh, whole
+    "ice-cream-48oz":      ("APU0000710411", "half gal"),  # Ice cream, prepackaged, regular
+    "strawberries-1lb":    ("APU0000711415", "12 oz"),  # Strawberries, dry pint (12 oz)
+    "pinto-beans-dry":     ("APU0000714233", "lb"),     # Beans, dried, any type
 }
 
 
