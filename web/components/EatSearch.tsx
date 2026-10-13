@@ -8,7 +8,11 @@ import type { Dish } from "@/lib/menus";
 
 type Home = { lat: number; lon: number };
 
-const QUICK = ["tacos", "burger", "pho", "biryani", "crab", "pancakes", "enchiladas", "coffee", "pizza", "wings"];
+// Quick-pick searches; each city shows the first 10 that have at least 3 dishes there.
+const QUICK = [
+  "tacos", "burger", "pizza", "pho", "wings", "pancakes", "enchiladas", "biryani", "curry", "ramen", "sushi",
+  "steak", "burrito", "salmon", "crab", "salad", "sandwich", "breakfast", "coffee", "pasta",
+];
 const PAGE = 60;
 
 /** "Eat out": search every dish across one city's restaurants, cheapest first. */
@@ -70,6 +74,19 @@ export function EatSearch({ dishes: allDishes }: { dishes: Dish[] }) {
     return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
   }, [dishes]);
   const cuisines = useMemo(() => [...new Set(restaurants.map((r) => r.cuisine))].sort(), [restaurants]);
+  const quick = useMemo(
+    () =>
+      QUICK.filter((word) => {
+        const w = singular(word);
+        let hits = 0;
+        for (const d of dishes) {
+          if (`${d.name} ${d.section} ${d.description ?? ""}`.toLowerCase().includes(w)) hits += 1;
+          if (hits >= 3) return true;
+        }
+        return false;
+      }).slice(0, 10),
+    [dishes],
+  );
 
   const results = useMemo(() => {
     const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean).map(singular);
@@ -150,7 +167,7 @@ export function EatSearch({ dishes: allDishes }: { dishes: Dish[] }) {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {QUICK.map((word) => (
+        {quick.map((word) => (
           <button
             key={word}
             type="button"
@@ -235,6 +252,7 @@ export function EatSearch({ dishes: allDishes }: { dishes: Dish[] }) {
       <p className="text-sm text-muted">
         {results.length.toLocaleString()} {results.length === 1 ? "dish" : "dishes"}
         {query && <> matching &ldquo;{query}&rdquo;</>}
+        {cities.length > 1 && city && <> in {city.split(",")[0]}</>}
         {signedIn !== null && !home && (
           <>
             {" · "}

@@ -476,6 +476,7 @@ select distinct on (p.menu_item_id)
 from menu_prices p
 join menu_items i on i.id = p.menu_item_id
 join locations l on l.id = i.location_id
+where l.menu_url is not null  -- clearing a restaurant's menu_url hides it (its history is kept)
 order by p.menu_item_id, p.fetched_at desc;
 grant select on latest_menu_prices to anon, authenticated;
 

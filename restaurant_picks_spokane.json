@@ -1,0 +1,202 @@
+[
+ {
+  "osm_id": "node/4210108311",
+  "name": "Churchill's Steakhouse",
+  "cuisine": "steak_house;seafood",
+  "kind": "restaurant",
+  "address": "165 South Post Street",
+  "city": "Spokane",
+  "zip": "99201",
+  "lat": 47.6551933,
+  "lon": -117.4232798,
+  "website": "https://churchillssteakhouse.com/",
+  "menu_url": "https://churchillssteakhouse.com/",
+  "sample": [
+   "Burrata $26.00",
+   "Scottish Smoked Salmon $29.00",
+   "Carpaccio of Prime Beef Loin $20.00",
+   "Jumbo Wild Gulf Shrimp Cocktail $29.00"
+  ],
+  "item_count": 41
+ },
+ {
+  "osm_id": "node/13012215001",
+  "name": "Uno Más Taco Shop",
+  "cuisine": "mexican",
+  "kind": "restaurant",
+  "address": "2020 North Monroe Street",
+  "city": "Spokane",
+  "zip": "99205",
+  "lat": 47.6764583,
+  "lon": -117.4262135,
+  "website": "https://www.unomastacoshop.com/",
+  "menu_url": "https://www.unomastacoshop.com/menu",
+  "sample": [
+   "Street tacos $6.50",
+   "Birria Tacos $14.00",
+   "Starter Trio $45.00",
+   "Lula Wings $18.00"
+  ],
+  "item_count": 34
+ },
+ {
+  "osm_id": "way/628000547",
+  "name": "Karma Indian Cuisine",
+  "cuisine": "indian",
+  "kind": "restaurant",
+  "address": "2606 East Boone Avenue",
+  "city": "Spokane",
+  "zip": "99205",
+  "lat": 47.6815527,
+  "lon": -117.4263783,
+  "website": "https://www.karmaindiancuisine.us/",
+  "menu_url": "https://www.karmaindiancuisine.us/",
+  "sample": [
+   "Aaloo tikki $9.99",
+   "Pakora $8.99",
+   "Papadum $3.99",
+   "Chilli Gobhi $10.99"
+  ],
+  "item_count": 36
+ },
+ {
+  "osm_id": "way/422377552",
+  "name": "The Flying Goat",
+  "cuisine": "pizza;sandwich",
+  "kind": "restaurant",
+  "address": "3318 West Northwest Boulevard",
+  "city": "Spokane",
+  "zip": "99205",
+  "lat": 47.6905045,
+  "lon": -117.4600863,
+  "website": "https://www.theflyinggoat.com/",
+  "menu_url": "https://www.theflyinggoat.com/menu",
+  "sample": [
+   "Rockwell Pickled Egg $3.25",
+   "Garland Chicken $18.25",
+   "Meenach Meatball $16.75",
+   "Gordon $19.75"
+  ],
+  "item_count": 17
+ },
+ {
+  "osm_id": "node/4696354596",
+  "name": "Globe Bar & Kitchen",
+  "cuisine": null,
+  "kind": "restaurant",
+  "address": "204 North Division Street",
+  "city": "Spokane",
+  "zip": "99202",
+  "lat": 47.6592679,
+  "lon": -117.410922,
+  "website": "https://www.globespokane.com/",
+  "menu_url": "https://www.globespokane.com/",
+  "sample": [
+   "Food $16.00",
+   "Falafel Burger $16.00",
+   "Cowboy Burger $15.00",
+   "Buffalo Chicken Mac $5.00"
+  ],
+  "item_count": 38
+ },
+ {
+  "osm_id": "node/12476372562",
+  "name": "Jewel of the North",
+  "cuisine": null,
+  "kind": "restaurant",
+  "address": "1924 West Pacific Avenue",
+  "city": "Spokane",
+  "zip": "99201",
+  "lat": 47.655803,
+  "lon": -117.4413356,
+  "website": "https://jotnspokane.com/",
+  "menu_url": "https://jotnspokane.com/menu",
+  "sample": [
+   "*Fresh-Cut French Fries $9.00",
+   "*Sweet Potato Fries $10.00",
+   "Chicken Wings $19.00",
+   "*Chips & Salsa $8.00"
+  ],
+  "item_count": 53
+ },
+ {
+  "osm_id": "node/12405875972",
+  "name": "Molé",
+  "cuisine": "mexican",
+  "kind": "restaurant",
+  "address": "1335 West Summit Parkway",
+  "city": "Spokane",
+  "zip": "99201",
+  "lat": 47.6616727,
+  "lon": -117.4322327,
+  "website": "https://molespokane.com/",
+  "menu_url": "https://molespokane.com/food-menu",
+  "sample": [
+   "House-Made Horchata $5.00",
+   "Cinnamon rice milk $5.00",
+   "Hibiscus juice $5.00",
+   "Mandarin, Pineapple, Tamarind $4.00"
+  ],
+  "item_count": 47
+ },
+ {
+  "osm_id": "node/10876764166",
+  "name": "Emma Rue's",
+  "cuisine": null,
+  "kind": "cafe",
+  "address": "17 South Howard Street",
+  "city": "Spokane",
+  "zip": "99201",
+  "lat": 47.6567134,
+  "lon": -117.4208705,
+  "website": "https://www.emmarues.com/",
+  "menu_url": "https://www.emmarues.com/menu",
+  "sample": [
+   "Sweet Beginnings $14.00",
+   "Alpine Gimlet $13.00",
+   "Where the Flowers Bloom* $18.00",
+   "S. P. Palmer $14.00"
+  ],
+  "item_count": 39
+ },
+ {
+  "osm_id": "way/667611902",
+  "name": "Anthony's",
+  "cuisine": "seafood",
+  "kind": "restaurant",
+  "address": "510 North Lincoln Street",
+  "city": "Spokane",
+  "zip": "99201",
+  "lat": 47.6628502,
+  "lon": -117.4246389,
+  "website": "https://www.anthonys.com/restaurant/anthonys-at-spokane-falls/",
+  "menu_url": "https://www.anthonys.com/restaurant/anthonys-at-spokane-falls/",
+  "sample": [
+   "Tempura Asparagus $13.00",
+   "Hawaiian Ahi Nachos* $19.00",
+   "Crispy Calamari with Lemon Aioli $23.00",
+   "Northwest Manila Clams $26.00"
+  ],
+  "item_count": 86
+ },
+ {
+  "osm_id": "node/11844548074",
+  "name": "Peace Pie Pizza",
+  "cuisine": "italian_pizza",
+  "kind": "restaurant",
+  "address": "19 West Main Avenue",
+  "city": null,
+  "zip": "99201",
+  "lat": 47.6587226,
+  "lon": -117.4119464,
+  "website": "https://peacepiepizzeria.com/",
+  "menu_url": "https://peacepiepizzeria.com/",
+  "sample": [
+   "GARLIC KNOTS $9.00",
+   "CHEESY BREAD $10.00",
+   "HOGS GONE WILD $14.00",
+   "HOUSE $6.00"
+  ],
+  "item_count": 35
+ }
+]
