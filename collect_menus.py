@@ -7,7 +7,8 @@ page politely (see menus.py) and saves:
   - its price  -> menu_prices (a NEW row every run, never overwritten)
 
 First-time setup: add restaurants from pick_restaurants.py's output:
-  python collect_menus.py --import picks.json
+  python collect_menus.py --import picks.json ["Spokane, WA"]
+  (the city defaults to San Antonio, TX)
 Weekly run:
   python collect_menus.py
 """
@@ -21,23 +22,24 @@ from dotenv import load_dotenv
 import db
 import menus
 
-METRO = "San Antonio, TX"
+DEFAULT_METRO = "San Antonio, TX"
 
 
-def import_picks(client, path):
-    """Add (or refresh) restaurants chosen by pick_restaurants.py."""
+def import_picks(client, path, metro=DEFAULT_METRO):
+    """Add (or refresh) restaurants chosen by pick_restaurants.py, in the given city."""
     picks = json.load(open(path, encoding="utf-8"))
+    city, state = [part.strip() for part in metro.split(",")]
     for pick in picks:
         db.upsert_location(client, {
             "source": "osm",
             "external_id": pick["osm_id"],
             "kind": "restaurant",
             "tracking": "restaurant",
-            "metro": METRO,
+            "metro": metro,
             "name": pick["name"],
             "address_line1": pick.get("address"),
-            "city": pick.get("city"),
-            "state": "TX",
+            "city": pick.get("city") or city,
+            "state": state,
             "zip_code": pick.get("zip"),
             "latitude": pick.get("lat"),
             "longitude": pick.get("lon"),
@@ -52,8 +54,8 @@ def import_picks(client, path):
 def main():
     load_dotenv()
     client = db.get_client()
-    if len(sys.argv) == 3 and sys.argv[1] == "--import":
-        import_picks(client, sys.argv[2])
+    if len(sys.argv) >= 3 and sys.argv[1] == "--import":
+        import_picks(client, sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else DEFAULT_METRO)
 
     restaurants = db.restaurants_with_menus(client)
     fetcher = menus.PoliteFetcher()

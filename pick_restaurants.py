@@ -81,7 +81,7 @@ def main(osm_path, out_path, exclude_path=None, wanted=WANTED):
                 "cuisine": tags.get("cuisine"),
                 "kind": tags.get("amenity"),
                 "address": " ".join(filter(None, [tags.get("addr:housenumber"), tags.get("addr:street")])) or None,
-                "city": tags.get("addr:city") or "San Antonio",
+                "city": tags.get("addr:city"),
                 "zip": tags.get("addr:postcode"),
                 "lat": center.get("lat"),
                 "lon": center.get("lon"),

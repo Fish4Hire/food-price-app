@@ -76,26 +76,34 @@ export function PriceEntry({
   }
 
   const store = stores.find((s) => s.id === storeId);
+  const cities = [...new Set(stores.map((s) => s.metro ?? "Other"))];
 
   return (
     <div className="pb-24">
-      <div className="flex flex-wrap gap-2">
-        {stores.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => chooseStore(s.id)}
-            aria-pressed={s.id === storeId}
-            className={
-              s.id === storeId
-                ? "rounded-full bg-accent px-3.5 py-1.5 text-sm font-medium text-accent-ink"
-                : "rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm text-ink-2 hover:text-ink"
-            }
-          >
-            {s.name}
-          </button>
-        ))}
-      </div>
+      {cities.map((city) => (
+        <div key={city} className="mb-3">
+          {cities.length > 1 && <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">{city}</p>}
+          <div className="flex flex-wrap gap-2">
+            {stores
+              .filter((s) => (s.metro ?? "Other") === city)
+              .map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => chooseStore(s.id)}
+                aria-pressed={s.id === storeId}
+                className={
+                  s.id === storeId
+                    ? "rounded-full bg-accent px-3.5 py-1.5 text-sm font-medium text-accent-ink"
+                    : "rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm text-ink-2 hover:text-ink"
+                }
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
       {store?.address && <p className="mt-2 text-sm text-muted">{store.address}</p>}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">

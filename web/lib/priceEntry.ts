@@ -4,7 +4,7 @@
 
 import { createClient } from "./supabase/server";
 
-export type EntryStore = { id: number; name: string; chain: string | null; address: string | null };
+export type EntryStore = { id: number; name: string; chain: string | null; address: string | null; metro: string | null };
 
 export type EntryItem = {
   slug: string;
@@ -39,9 +39,10 @@ export async function getEntryData(): Promise<{ stores: EntryStore[]; items: Ent
   const [storesResult, productsResult, lastResult] = await Promise.all([
     supabase
       .from("locations")
-      .select("id, name, chain, address_line1")
+      .select("id, name, chain, address_line1, metro")
       .eq("kind", "grocery")
       .neq("source", "kroger")
+      .order("metro")
       .order("chain"),
     supabase
       .from("products")
@@ -74,7 +75,7 @@ export async function getEntryData(): Promise<{ stores: EntryStore[]; items: Ent
   }
 
   return {
-    stores: storesResult.data.map((s) => ({ id: s.id, name: s.name, chain: s.chain, address: s.address_line1 })),
+    stores: storesResult.data.map((s) => ({ id: s.id, name: s.name, chain: s.chain, address: s.address_line1, metro: s.metro })),
     items,
     last,
   };

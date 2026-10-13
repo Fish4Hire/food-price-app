@@ -471,7 +471,7 @@ create view latest_menu_prices with (security_invoker = true) as
 select distinct on (p.menu_item_id)
     i.id as menu_item_id, i.name, i.section, i.description,
     l.id as location_id, l.name as restaurant, l.cuisine, l.address_line1, l.website, l.menu_url,
-    l.latitude, l.longitude,
+    l.latitude, l.longitude, l.metro,
     p.price, p.source, p.fetched_at
 from menu_prices p
 join menu_items i on i.id = p.menu_item_id

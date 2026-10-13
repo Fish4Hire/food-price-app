@@ -7,7 +7,7 @@ import { getDishes } from "@/lib/menus";
 
 export const metadata: Metadata = {
   title: "Eat out",
-  description: "Search San Antonio restaurant menus and find the cheapest version of the dish you're craving.",
+  description: "Search local restaurant menus and find the cheapest version of the dish you're craving.",
 };
 
 export default async function EatPage() {
@@ -17,10 +17,11 @@ export default async function EatPage() {
   const dishes = await getDishes();
   const latest = dishes.reduce((max, d) => (d.fetchedAt > max ? d.fetchedAt : max), "");
   const restaurants = new Set(dishes.map((d) => d.restaurantId)).size;
+  const cities = [...new Set(dishes.map((d) => d.metro?.split(",")[0]).filter(Boolean))].join(" · ");
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
-      <p className="text-sm font-medium text-accent">San Antonio</p>
+      <p className="text-sm font-medium text-accent">{cities}</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight">Eat out</h1>
       <p className="mb-6 mt-2 text-ink-2">
         {dishes.length.toLocaleString()} dishes from {restaurants} local restaurants, read from each restaurant&apos;s own

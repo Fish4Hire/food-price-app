@@ -16,6 +16,7 @@ export type Dish = {
   menuUrl: string | null;
   lat: number | null;
   lon: number | null;
+  metro: string | null; // e.g. "San Antonio, TX"
   price: number;
   fetchedAt: string;
 };
@@ -32,6 +33,7 @@ type Row = {
   menu_url: string | null;
   latitude: number | null;
   longitude: number | null;
+  metro: string | null;
   price: number;
   fetched_at: string;
 };
@@ -43,7 +45,7 @@ export async function getDishes(): Promise<Dish[]> {
 
   const rows = await fetchAll<Row>(
     "latest_menu_prices?select=menu_item_id,name,section,description,location_id,restaurant,cuisine," +
-      "address_line1,menu_url,latitude,longitude,price,fetched_at&order=price,menu_item_id",
+      "address_line1,menu_url,latitude,longitude,metro,price,fetched_at&order=price,menu_item_id",
   );
   return rows.map((row) => ({
     id: row.menu_item_id,
@@ -57,6 +59,7 @@ export async function getDishes(): Promise<Dish[]> {
     menuUrl: row.menu_url,
     lat: row.latitude,
     lon: row.longitude,
+    metro: row.metro,
     price: Number(row.price),
     fetchedAt: row.fetched_at,
   }));

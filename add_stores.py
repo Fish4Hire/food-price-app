@@ -8,6 +8,8 @@ shows up on the price entry screen (/enter) and, once it has prices, on the site
 
 Run it with:
   python add_stores.py osm_grocers.json way/638830202 way/314947381 ...
+  python add_stores.py spokane_grocers_osm.json --metro "Spokane, WA" way/123 ...
+(the city defaults to San Antonio, TX)
 """
 
 import json
@@ -18,10 +20,10 @@ from dotenv import load_dotenv
 
 import db
 
-METRO = "San Antonio, TX"
+DEFAULT_METRO = "San Antonio, TX"
 
 
-def store_row(place):
+def store_row(place, metro=DEFAULT_METRO):
     tags = place["tags"]
     center = place.get("center") or place
     chain = tags.get("brand") or tags.get("name")
@@ -34,12 +36,12 @@ def store_row(place):
         "external_id": f"{place['type']}/{place['id']}",
         "kind": "grocery",
         "tracking": "featured",
-        "metro": METRO,
+        "metro": metro,
         "name": name,
         "chain": chain,
         "address_line1": street or None,
-        "city": tags.get("addr:city") or "San Antonio",
-        "state": "TX",
+        "city": tags.get("addr:city") or metro.split(",")[0].strip(),
+        "state": tags.get("addr:state") or metro.split(",")[1].strip(),
         "zip_code": (tags.get("addr:postcode") or "")[:5] or None,
         "latitude": center.get("lat"),
         "longitude": center.get("lon"),
@@ -47,7 +49,7 @@ def store_row(place):
     }
 
 
-def main(osm_path, osm_ids):
+def main(osm_path, osm_ids, metro=DEFAULT_METRO):
     load_dotenv()
     client = db.get_client()
     places = {f"{p['type']}/{p['id']}": p for p in json.load(open(osm_path, encoding="utf-8"))}
@@ -56,10 +58,14 @@ def main(osm_path, osm_ids):
         if not place:
             print(f"  {osm_id}: not in {osm_path}")
             continue
-        row = store_row(place)
+        row = store_row(place, metro)
         db.upsert_location(client, row)
         print(f"  added {row['name']} ({row['address_line1']}, {row['zip_code']})")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2:])
+    args = sys.argv[2:]
+    metro = DEFAULT_METRO
+    if args[:1] == ["--metro"]:
+        metro, args = args[1], args[2:]
+    main(sys.argv[1], args, metro)

@@ -11,8 +11,9 @@ type Home = { lat: number; lon: number };
 const QUICK = ["tacos", "burger", "pho", "biryani", "crab", "pancakes", "enchiladas", "coffee", "pizza", "wings"];
 const PAGE = 60;
 
-/** "Eat out": search every dish across our restaurants, cheapest first. */
-export function EatSearch({ dishes }: { dishes: Dish[] }) {
+/** "Eat out": search every dish across one city's restaurants, cheapest first. */
+export function EatSearch({ dishes: allDishes }: { dishes: Dish[] }) {
+  const [cityChoice, setCityChoice] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [cuisine, setCuisine] = useState<string | null>(null);
   const [restaurantId, setRestaurantId] = useState<number | null>(null);
@@ -40,6 +41,26 @@ export function EatSearch({ dishes }: { dishes: Dish[] }) {
   }, []);
   const distanceTo = (d: Dish) =>
     home && d.lat !== null && d.lon !== null ? milesBetween(home.lat, home.lon, d.lat, d.lon) : null;
+
+  // Cities with menus, most dishes first. Until the visitor picks one, show the
+  // city nearest their saved address (within 100 miles), else the biggest city.
+  const cities = useMemo(() => cityCenters(allDishes), [allDishes]);
+  const nearestCity = home
+    ? cities
+        .map((c) => ({ name: c.name, miles: milesBetween(home.lat, home.lon, c.lat, c.lon) }))
+        .filter((c) => c.miles <= 100)
+        .sort((a, b) => a.miles - b.miles)[0]?.name
+    : undefined;
+  const city = cityChoice ?? nearestCity ?? cities[0]?.name ?? null;
+  const dishes = useMemo(() => allDishes.filter((d) => (d.metro ?? "Other") === city), [allDishes, city]);
+  function chooseCity(name: string) {
+    setCityChoice(name);
+    setCuisine(null);
+    setRestaurantId(null);
+    setMaxPrice(null);
+    setWithinMiles(null);
+    setShown(PAGE);
+  }
 
   const ceiling = useMemo(() => Math.ceil(Math.max(10, ...dishes.map((d) => d.price))), [dishes]);
   const maxPrice = maxPriceSetting ?? ceiling;
@@ -84,6 +105,25 @@ export function EatSearch({ dishes }: { dishes: Dish[] }) {
 
   return (
     <div className="space-y-4">
+      {cities.length > 1 && (
+        <div role="group" aria-label="City" className="flex flex-wrap gap-2">
+          {cities.map((c) => (
+            <button
+              key={c.name}
+              type="button"
+              onClick={() => chooseCity(c.name)}
+              aria-pressed={c.name === city}
+              className={
+                c.name === city
+                  ? "rounded-full bg-accent px-4 py-1.5 text-sm font-medium text-accent-ink"
+                  : "rounded-full border border-line bg-surface px-4 py-1.5 text-sm text-ink-2 hover:text-ink"
+              }
+            >
+              {c.name.split(",")[0]}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         <input
           type="search"
@@ -245,6 +285,25 @@ export function EatSearch({ dishes }: { dishes: Dish[] }) {
       )}
     </div>
   );
+}
+
+/** Each city's name and rough center (average restaurant location), most dishes first. */
+function cityCenters(dishes: Dish[]): { name: string; lat: number; lon: number }[] {
+  const byName = new Map<string, { name: string; dishes: number; lat: number; lon: number; located: number }>();
+  for (const d of dishes) {
+    const name = d.metro ?? "Other";
+    const c = byName.get(name) ?? { name, dishes: 0, lat: 0, lon: 0, located: 0 };
+    c.dishes += 1;
+    if (d.lat !== null && d.lon !== null) {
+      c.lat += d.lat;
+      c.lon += d.lon;
+      c.located += 1;
+    }
+    byName.set(name, c);
+  }
+  return [...byName.values()]
+    .sort((a, b) => b.dishes - a.dishes)
+    .map((c) => ({ name: c.name, lat: c.located ? c.lat / c.located : 0, lon: c.located ? c.lon / c.located : 0 }));
 }
 
 /** "sandwich;pizza" -> "Sandwich"; missing -> "Other". */
