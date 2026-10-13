@@ -210,7 +210,7 @@ BASKET = [
      "unit": "each", "size": (1, 6), "qty": 4},
     {"slug": "tomatoes-roma-lb", "name": "Roma tomatoes, per lb", "category": "Produce",
      "search": "roma tomatoes", "require": ["roma", "tomato"],
-     "exclude": ["sauce", "canned", "diced", "paste", "sun dried", "organic", "crushed"],
+     "exclude": ["sauce", "canned", "diced", "paste", "sun dried", "organic", "crushed", "stewed", "sliced"],
      "unit": "lb", "size": (0.5, 3), "qty": 2},
     {"slug": "limes-each", "name": "Limes, each", "category": "Produce",
      "search": "fresh limes", "require": ["lime"],
@@ -265,7 +265,8 @@ BASKET = [
      "unit": "lb", "size": (1, 8), "qty": 5},
     {"slug": "chicken-thighs-lb", "name": "Chicken thighs, per lb", "category": "Meat",
      "search": "chicken thighs", "require": ["chicken", "thigh"],
-     "exclude": ["seasoned", "marinated", "organic", "cooked", "frozen", "breaded", "grilled", "teriyaki"],
+     "exclude": ["seasoned", "marinated", "organic", "cooked", "frozen", "breaded", "grilled", "teriyaki",
+                 "fried", "available", "meal starter", "garlic", "herb", "diced"],
      "unit": "lb", "size": (0.5, 6), "qty": 2},
     {"slug": "hot-dogs", "name": "Hot dogs, per oz", "category": "Meat",
      "search": "beef hot dogs franks", "require": [["hot dog", "franks", "wieners"]],
@@ -303,7 +304,8 @@ BASKET = [
      "unit": "oz", "size": (15, 16.5), "qty": 16},
     {"slug": "pinto-beans-dry", "name": "Pinto beans, dry, per lb", "category": "Pantry",
      "search": "dry pinto beans", "require": ["pinto beans"],
-     "exclude": ["canned", "refried", "seasoned", "ranch style", "organic", "cooked", "low sodium"],
+     "exclude": ["canned", "refried", "seasoned", "ranch style", "organic", "cooked", "low sodium",
+                 "ham", "flavor"],
      "unit": "lb", "size": (1, 4), "qty": 2},
     {"slug": "corn-canned", "name": "Whole kernel corn, canned", "category": "Pantry",
      "search": "whole kernel corn can", "require": ["whole kernel"],
@@ -383,13 +385,21 @@ def to_base_size(size_value, size_unit):
     return round(size_value * factor, 3), base_unit
 
 
+def has_word(text, word):
+    """
+    True if `word` appears in `text` as a whole word (plurals allowed), so "butter"
+    matches "salted butter sticks" but not "butternut squash" or "Butterball".
+    """
+    return re.search(r"(?<![a-z0-9])" + re.escape(word) + r"(?:s|es)?(?![a-z0-9])", text) is not None
+
+
 def match_listing(description, base_qty, base_unit):
     """Return the slug of the basket item this listing counts as, or None."""
     text = normalize_text(description)
     for item in BASKET:
         # A require entry can be a list of alternatives: ["80%", "80/20"] means either one.
         if not all(
-            any(alt in text for alt in word) if isinstance(word, list) else word in text
+            any(has_word(text, alt) for alt in word) if isinstance(word, list) else has_word(text, word)
             for word in item["require"]
         ):
             continue
