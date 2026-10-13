@@ -62,7 +62,8 @@ async function ItemContent({ slug }: { slug: string }) {
   const benchmark = buildBenchmark(benchmarks, product.id);
 
   // One chart line per city: its cheapest store each day.
-  const series: ChartSeries[] = metros.map((metro, i) => ({
+  // The chart has 8 distinguishable colors, so it shows up to 8 cities; the table lists all.
+  const series: ChartSeries[] = metros.slice(0, CITY_COLORS.length).map((metro, i) => ({
     id: i,
     label: metro.name,
     color: CITY_COLORS[i % CITY_COLORS.length],
@@ -86,7 +87,7 @@ async function ItemContent({ slug }: { slug: string }) {
 
   // Today's cheapest listing in each city, cheapest city first.
   const cityRows = metros
-    .map((metro, i) => ({ metro, color: CITY_COLORS[i % CITY_COLORS.length], best: cheapestAt(itemListings, metro) }))
+    .map((metro, i) => ({ metro, color: CITY_COLORS[i] ?? "transparent", best: cheapestAt(itemListings, metro) })) // no swatch past 8 (not in chart)
     .filter((row): row is { metro: Metro; color: string; best: Listing } => row.best !== null)
     .sort((a, b) => a.best.price_per_unit - b.best.price_per_unit);
   const cheapestCity = cityRows[0];
@@ -164,7 +165,10 @@ async function ItemContent({ slug }: { slug: string }) {
       {/* Chart */}
       <section className="mt-6 rounded-2xl border border-line bg-surface p-5 sm:p-6">
         <h2 className="font-semibold">Lowest price per {unit}, by city</h2>
-        <p className="mb-4 mt-1 text-sm text-ink-2">The cheapest matching product in each city, each day. Sale prices included.</p>
+        <p className="mb-4 mt-1 text-sm text-ink-2">
+          The cheapest matching product in each city, each day. Sale prices included.
+          {metros.length > CITY_COLORS.length && ` Showing ${CITY_COLORS.length} of ${metros.length} cities; all are in the table below.`}
+        </p>
         <ItemChart series={series} unit={unit} trackedDays={days.length} />
         {benchmark && (
           <p className="mt-4 text-sm text-muted">

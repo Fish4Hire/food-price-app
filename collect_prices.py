@@ -35,6 +35,7 @@ METROS = [
     {"name": "Denver, CO",      "zip": "80202", "chain": "KINGSOOPERS", "stores": 2},
     {"name": "Los Angeles, CA", "zip": "90012", "chain": "RALPHS",      "stores": 2},
     {"name": "Seattle, WA",     "zip": "98101", "chain": "QFC",         "stores": 2},
+    {"name": "Spokane, WA",     "zip": "99201", "chain": "FRED",        "stores": 2},  # Fred Meyer
 ]
 # 50 is Kroger's max per search, and costs the same single API call as 10.
 ITEMS_PER_SEARCH = 50
