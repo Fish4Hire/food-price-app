@@ -111,6 +111,15 @@ body {
   color: var(--ink);
 }
 
+/* Dropdown lists: some browsers (Chrome on Windows) draw the open list with a
+   white background even in dark mode, while the options inherit the light text,
+   so set both colors explicitly. */
+select option,
+select optgroup {
+  background-color: var(--surface);
+  color: var(--ink);
+}
+
 /* Visible keyboard focus everywhere. */
 :focus-visible {
   outline: 2px solid var(--accent);
