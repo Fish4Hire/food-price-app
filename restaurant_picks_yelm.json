@@ -1,0 +1,22 @@
+[
+  {
+    "osm_id": "way/254746132",
+    "name": "Rainier City Pizza & Burgers",
+    "cuisine": "diner",
+    "kind": "restaurant",
+    "address": "202 Binghampton Street Southeast",
+    "city": "Rainier",
+    "zip": "98576",
+    "lat": 46.8874892,
+    "lon": -122.6900163,
+    "website": "https://www.rainiercitypizzaburgers.com/",
+    "menu_url": "https://www.rainiercitypizzaburgers.com/",
+    "sample": [
+      "Take & Bake The Rex $21.98",
+      "Double down Special $30.98",
+      "Take 'N' Bake Pizza (build your own) $14.98",
+      "Take & Bake Double down Special $28.98"
+    ],
+    "item_count": 318
+  }
+]

@@ -26,7 +26,8 @@ import kroger_api
 
 # Cities to track. zip is a central ZIP code; chain is the Kroger-owned banner
 # there; stores is how many of the nearest stores to check. Stores in one city
-# have nearly identical prices, so 2 is enough for the newer cities.
+# have nearly identical prices, so 2 is enough for the newer cities. radius (miles)
+# is for small towns whose nearest store is past Kroger's 10-mile default.
 METROS = [
     {"name": "Houston, TX",     "zip": "77002", "chain": "KROGER",      "stores": 3},
     {"name": "Dallas, TX",      "zip": "75201", "chain": "KROGER",      "stores": 2},
@@ -36,6 +37,7 @@ METROS = [
     {"name": "Los Angeles, CA", "zip": "90012", "chain": "RALPHS",      "stores": 2},
     {"name": "Seattle, WA",     "zip": "98101", "chain": "QFC",         "stores": 2},
     {"name": "Spokane, WA",     "zip": "99201", "chain": "FRED",        "stores": 2},  # Fred Meyer
+    {"name": "Yelm, WA",        "zip": "98597", "chain": "FRED",        "stores": 2, "radius": 25},  # Lacey, Spanaway
 ]
 # 50 is Kroger's max per search, and costs the same single API call as 10.
 ITEMS_PER_SEARCH = 50
@@ -163,7 +165,8 @@ def featured_stores(token):
     picked = []
     for metro in METROS:
         # Ask for a few extra in case some are placeholders, then keep the nearest real ones.
-        nearby = kroger_api.find_nearest_stores(token, metro["zip"], metro["stores"] + 3, metro["chain"])
+        nearby = kroger_api.find_nearest_stores(
+            token, metro["zip"], metro["stores"] + 3, metro["chain"], radius_miles=metro.get("radius"))
         stores = [s for s in nearby if is_real_store(s)][: metro["stores"]]
         if not stores:
             print(f"  No {metro['chain']} stores found near {metro['zip']} ({metro['name']})")
