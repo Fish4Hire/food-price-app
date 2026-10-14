@@ -3,21 +3,24 @@
 // shown on your screen and opens Cheaper Eats in a new tab to confirm and save them.
 // No bots and no logins: it only reads the page you already have open.
 
+// The script is squashed onto one line, so it must use /* */ comments only: a //
+// comment would swallow the rest of the script.
 const SCRIPT = `
 (function () {
-  var PRICE = /^\\$\\s?(\\d{1,3}(?:,\\d{3})?(?:\\.\\d{2})?)$/;
+  /* "$12.99", "$12.99+" (DoorDash) or "$12.99 • 520 Cal." (Uber Eats) */
+  var PRICE = /^\\$\\s?(\\d{1,3}(?:,\\d{3})?(?:\\.\\d{2})?)\\+?(?:\\s*[•·].*)?$/;
   var ANY_PRICE = /\\$\\s?\\d/;
   var items = [], seen = {};
   var nodes = document.querySelectorAll("body *");
   for (var n = 0; n < nodes.length; n++) {
     var el = nodes[n];
-    if (el.children.length) continue;
+    if (el.children.length > 3) continue; /* small groups too, for "$" and "14.50" split in two */
     var m = (el.textContent || "").trim().match(PRICE);
     if (!m) continue;
     var c = el;
     for (var up = 0; up < 6 && c; up++) {
       c = c.parentElement;
-      if (!c || c.querySelector("input, select, textarea")) break; // filters and forms aren't dishes
+      if (!c || c.querySelector("input, select, textarea")) break; /* filters and forms aren't dishes */
       var lines = (c.innerText || "").split("\\n").map(function (s) { return s.trim(); }).filter(Boolean);
       var name = null, desc = "";
       for (var i = 0; i < lines.length; i++) {
