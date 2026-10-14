@@ -150,7 +150,7 @@ revoke all on function record_prices(jsonb) from public, anon, authenticated;
 grant execute on function record_prices(jsonb) to service_role;
 
 -- Prices checked by hand (added 2026-10-12) for stores with no API (H-E-B, Walmart,
--- Target, Costco, Sprouts ...). Only app owners/helpers (app_owners) may save them.
+-- Target, Costco, Sprouts ...). Only price checkers (see account_access) may save them.
 -- p_entries: [{slug, price, regular?, size, size_value, size_unit, base_qty, base_unit, description?}]
 -- price = what the shelf charges now; regular = the normal price if it's on sale.
 create or replace function record_manual_prices(p_location_id bigint, p_entries jsonb)
@@ -165,8 +165,10 @@ declare
     now_ts timestamptz := now();
     shelf numeric;
     normal numeric;
+    n_added integer;
+    n_confirmed integer;
 begin
-    if not is_app_owner() then
+    if not can_enter_prices() then
         raise exception 'only Cheaper Eats price checkers can save prices';
     end if;
     select coalesce(chain, name) into store_chain from locations
@@ -202,7 +204,12 @@ begin
             'source', 'manual', 'search_term', 'manual', 'fetched_at', now_ts);
         item_id := null;
     end loop;
-    return query select * from record_prices(rows);
+    select r.added, r.confirmed into n_added, n_confirmed from record_prices(rows) r;
+    perform log_activity('prices_saved', null, jsonb_build_object(
+        'location_id', p_location_id,
+        'store', (select name from locations where id = p_location_id),
+        'prices', jsonb_array_length(rows), 'changed', n_added));
+    return query select n_added, n_confirmed;
 end;
 $$;
 revoke all on function record_manual_prices(bigint, jsonb) from public, anon;
@@ -350,6 +357,14 @@ begin
     if me is null then
         raise exception 'not signed in';
     end if;
+    -- Their group goes too (except the owner's), and their email is removed from
+    -- the activity log, so nothing about them is left.
+    delete from public.account_access
+    where email = lower(auth.jwt() ->> 'email') and tier <> 'owner';
+    update public.activity_log set actor_email = '(deleted account)'
+    where actor_email = lower(auth.jwt() ->> 'email');
+    update public.activity_log set target_email = '(deleted account)'
+    where target_email = lower(auth.jwt() ->> 'email');
     delete from auth.users where id = me;
 end;
 $$;
@@ -407,24 +422,224 @@ grant select, insert, update, delete on shopping_lists, list_items to authentica
 -- ---------------------------------------------------------------------------
 -- Restaurants and menus (added 2026-10-12). Restaurants are rows in locations
 -- with kind = 'restaurant' (and tracking = 'restaurant', so grocery pages never
--- show them). Menus are public (Eat out tab); app_owners is kept for owner-only tools.
+-- show them). Menus are public (Eat out tab).
 -- ---------------------------------------------------------------------------
 alter table locations add column if not exists website  text;
 alter table locations add column if not exists cuisine  text;
 alter table locations add column if not exists menu_url text;   -- the page we read the menu from
 
-create table if not exists app_owners (
-    user_id  uuid primary key references auth.users(id) on delete cascade
+-- ---------------------------------------------------------------------------
+-- Account groups (added 2026-10-13). Everyone who signs up is a free user.
+-- Others are listed here by email, so the owner can add someone before they
+-- sign up and it applies the moment they log in:
+--   owner    the owner (set here in schema.sql, never from the website)
+--   admin    can do everything the owner can on the website, except change the
+--            owner account or make anyone an owner; always enters prices
+--   trusted  people the owner gives the full service for free
+--   paid     paying subscribers (set by billing once it exists, or by hand)
+--   free     only stored when the person is a price checker
+-- enters_prices is separate: anyone the owner picks can enter shelf prices.
+-- Hidden from everyone; read through the functions below.
+-- ---------------------------------------------------------------------------
+create table if not exists account_access (
+    email          text primary key check (email = lower(email)),
+    tier           text not null,
+    enters_prices  boolean not null default false,
+    note           text,                -- e.g. "my sister"; only the owner sees it
+    paid_until     timestamptz,         -- paid only: access ends after this (null = no end)
+    granted_at     timestamptz not null default now()
 );
-alter table app_owners enable row level security;
-revoke all on app_owners from anon, authenticated;
+alter table account_access drop constraint if exists account_access_tier_check;
+alter table account_access add constraint account_access_tier_check
+    check (tier in ('owner', 'admin', 'trusted', 'paid', 'free'));
+alter table account_access enable row level security;
+revoke all on account_access from anon, authenticated;
+insert into account_access (email, tier, enters_prices)
+values ('halendfj@gmail.com', 'owner', true)
+on conflict (email) do nothing;
 
--- "Is the signed-in user an owner?" Runs with owner rights so the list itself stays hidden.
+-- The signed-in user's row (by their verified sign-in email), if any.
+create or replace function my_access_row() returns public.account_access
+language sql stable security definer set search_path = ''
+as $$ select * from public.account_access where email = lower(auth.jwt() ->> 'email') $$;
+revoke all on function my_access_row() from public, anon, authenticated;
+
+-- "What group am I in?" 'owner', 'admin', 'trusted', 'paid' or 'free' (expired paid counts as free).
+create or replace function my_tier() returns text
+language sql stable security definer set search_path = ''
+as $$
+    select case
+        when r.tier = 'paid' and r.paid_until is not null and r.paid_until < now() then 'free'
+        else coalesce(r.tier, 'free')
+    end
+    from public.my_access_row() r
+$$;
+revoke all on function my_tier() from public, anon;
+grant execute on function my_tier() to authenticated;
+
 create or replace function is_app_owner() returns boolean
 language sql stable security definer set search_path = ''
-as $$ select exists (select 1 from public.app_owners where user_id = auth.uid()) $$;
+as $$ select coalesce((select tier = 'owner' from public.my_access_row()), false) $$;
 revoke all on function is_app_owner() from public, anon;
 grant execute on function is_app_owner() to authenticated;
+
+-- Owner or admin: may manage people and see the activity log.
+create or replace function is_app_admin() returns boolean
+language sql stable security definer set search_path = ''
+as $$ select coalesce((select tier in ('owner', 'admin') from public.my_access_row()), false) $$;
+revoke all on function is_app_admin() from public, anon;
+grant execute on function is_app_admin() to authenticated;
+
+create or replace function can_enter_prices() returns boolean
+language sql stable security definer set search_path = ''
+as $$ select coalesce((select enters_prices or tier in ('owner', 'admin') from public.my_access_row()), false) $$;
+revoke all on function can_enter_prices() from public, anon;
+grant execute on function can_enter_prices() to authenticated;
+
+-- Everything the website needs in one call: group, owner?, admin?, price checker?
+drop function if exists my_access();
+create or replace function my_access()
+returns table (tier text, is_owner boolean, is_admin boolean, enters_prices boolean)
+language sql stable security definer set search_path = ''
+as $$ select public.my_tier(), public.is_app_owner(), public.is_app_admin(), public.can_enter_prices() $$;
+revoke all on function my_access() from public, anon;
+grant execute on function my_access() to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Activity log (added 2026-10-13): who changed whose access, and who saved
+-- prices. Append-only. The only edit allowed is replacing an email with
+-- '(deleted account)' when that person deletes their account.
+-- ---------------------------------------------------------------------------
+create table if not exists activity_log (
+    id            bigint generated always as identity primary key,
+    at            timestamptz not null default now(),
+    actor_email   text,            -- who did it
+    action        text not null,   -- 'access_changed', 'prices_saved'
+    target_email  text,            -- whose access changed (access_changed only)
+    details       jsonb not null default '{}'::jsonb   -- before/after, store, counts
+);
+create index if not exists activity_log_at on activity_log (at desc);
+alter table activity_log enable row level security;
+revoke all on activity_log from anon, authenticated;
+
+create or replace function activity_log_append_only() returns trigger
+language plpgsql set search_path = ''
+as $$
+begin
+    if tg_op = 'UPDATE'
+       and new.id = old.id and new.at = old.at and new.action = old.action and new.details = old.details
+       and (new.actor_email is not distinct from old.actor_email or new.actor_email = '(deleted account)')
+       and (new.target_email is not distinct from old.target_email or new.target_email = '(deleted account)')
+    then
+        return new;   -- redacting a deleted account's email
+    end if;
+    raise exception 'the activity log can''t be changed';
+end;
+$$;
+drop trigger if exists activity_log_append_only on activity_log;
+create trigger activity_log_append_only
+    before update or delete on activity_log
+    for each row execute function activity_log_append_only();
+
+-- Adds a log entry as the signed-in user. Only called from other functions.
+create or replace function log_activity(p_action text, p_target text, p_details jsonb)
+returns void
+language sql security definer set search_path = ''
+as $$
+    insert into public.activity_log (actor_email, action, target_email, details)
+    values (lower(auth.jwt() ->> 'email'), p_action, p_target, coalesce(p_details, '{}'::jsonb))
+$$;
+revoke all on function log_activity(text, text, jsonb) from public, anon, authenticated;
+
+-- Owner or admin: the latest log entries, newest first.
+create or replace function admin_activity(p_limit integer default 200)
+returns table (at timestamptz, actor_email text, action text, target_email text, details jsonb)
+language plpgsql stable security definer set search_path = ''
+as $$
+begin
+    if not public.is_app_admin() then
+        raise exception 'admins only';
+    end if;
+    return query
+    select l.at, l.actor_email, l.action, l.target_email, l.details
+    from public.activity_log l
+    order by l.at desc, l.id desc
+    limit least(greatest(p_limit, 1), 1000);
+end;
+$$;
+revoke all on function admin_activity(integer) from public, anon;
+grant execute on function admin_activity(integer) to authenticated;
+
+-- Owner or admin: everyone who has signed up, plus people added who haven't yet.
+create or replace function admin_people()
+returns table (email text, user_id uuid, joined_at timestamptz, last_sign_in_at timestamptz,
+               tier text, enters_prices boolean, note text, paid_until timestamptz)
+language plpgsql stable security definer set search_path = ''
+as $$
+begin
+    if not public.is_app_admin() then
+        raise exception 'admins only';
+    end if;
+    return query
+    select coalesce(lower(u.email), a.email)::text, u.id, u.created_at, u.last_sign_in_at,
+           coalesce(a.tier, 'free'), coalesce(a.enters_prices, false), a.note, a.paid_until
+    from auth.users u
+    full join public.account_access a on a.email = lower(u.email)
+    order by (a.tier = 'owner') desc nulls last, (a.tier = 'admin') desc nulls last, u.created_at desc nulls first;
+end;
+$$;
+revoke all on function admin_people() from public, anon;
+grant execute on function admin_people() to authenticated;
+
+-- Owner or admin: put someone (by email) in a group. The owner row can't be
+-- changed here, and no one can be made an owner from the website. Every change
+-- is logged with the before and after.
+create or replace function admin_set_access(p_email text, p_tier text, p_enters_prices boolean,
+                                            p_note text, p_paid_until timestamptz default null)
+returns void
+language plpgsql security definer set search_path = ''
+as $$
+declare
+    who text := lower(trim(p_email));
+    before public.account_access;
+begin
+    if not public.is_app_admin() then
+        raise exception 'admins only';
+    end if;
+    if who !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then
+        raise exception 'not an email address';
+    end if;
+    if p_tier not in ('admin', 'trusted', 'paid', 'free') then
+        raise exception 'unknown group';
+    end if;
+    select * into before from public.account_access where email = who;
+    if before.tier = 'owner' then
+        raise exception 'the owner account can''t be changed here';
+    end if;
+    if p_tier = 'free' and not p_enters_prices then
+        delete from public.account_access where email = who;   -- plain free user: no row needed
+    else
+        insert into public.account_access (email, tier, enters_prices, note, paid_until)
+        values (who, p_tier, p_enters_prices or p_tier = 'admin', nullif(trim(p_note), ''),
+                case when p_tier = 'paid' then p_paid_until end)
+        on conflict (email) do update
+            set tier = excluded.tier, enters_prices = excluded.enters_prices,
+                note = excluded.note, paid_until = excluded.paid_until;
+    end if;
+    perform public.log_activity('access_changed', who, jsonb_build_object(
+        'from', jsonb_build_object('tier', coalesce(before.tier, 'free'),
+                                   'enters_prices', coalesce(before.enters_prices, false),
+                                   'note', before.note, 'paid_until', before.paid_until),
+        'to', jsonb_build_object('tier', p_tier, 'enters_prices', p_enters_prices or p_tier = 'admin',
+                                 'note', nullif(trim(p_note), ''),
+                                 'paid_until', case when p_tier = 'paid' then p_paid_until end)));
+end;
+$$;
+revoke all on function admin_set_access(text, text, boolean, text, timestamptz) from public, anon;
+grant execute on function admin_set_access(text, text, boolean, text, timestamptz) to authenticated;
+
+-- Replaced by account_access (2026-10-13).
+drop table if exists app_owners;
 
 create table if not exists menu_items (
     id           bigint generated always as identity primary key,

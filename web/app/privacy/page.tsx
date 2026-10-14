@@ -10,7 +10,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy policy"
-      updated="October 12, 2026"
+      updated="October 13, 2026"
       intro={
         <p>
           Cheaper Eats (&ldquo;we&rdquo;) helps you find cheaper groceries. We collect as little personal information as we
@@ -48,9 +48,18 @@ export default function PrivacyPage() {
             page address, and the dishes and prices that were on your screen. Only you can see them.
           </li>
           <li>
-            <strong>Basic account records</strong>, such as when you signed up and last signed in.
+            <strong>Basic account records</strong>, such as when you signed up and last signed in, and your plan (for
+            example free, or free full access given by us).
           </li>
         </ul>
+        <p>
+          If we give someone free full access or price-checking access before they sign up, we store their email
+          address and that access so it applies when they sign in. Ask us and we&apos;ll remove it.
+        </p>
+        <p>
+          For security, we keep a log of changes to people&apos;s access and of prices our team enters: who did it and
+          when. If you delete your account, your email address is removed from that log.
+        </p>
         <p>
           We don&apos;t collect your name, phone number, payment details or your device&apos;s location. Your street
           address is only collected if you add it yourself.
@@ -127,7 +136,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             We keep your account information until you delete your account. You can delete it at any time on your{" "}
-            <Link href="/account">account page</Link>: your account, ZIP code, address, lists and saved menus are deleted immediately. If you
+            <Link href="/account">account page</Link>: your account, plan, ZIP code, address, lists and saved menus are deleted immediately. If you
             can&apos;t sign in, email <ContactLink /> from the address you signed up with and we&apos;ll delete it within 30
             days.
           </li>

@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PriceEntry } from "@/components/PriceEntry";
-import { getCurrentUser, isOwner } from "@/lib/auth";
+import { canEnterPrices, getCurrentUser } from "@/lib/auth";
 import { getEntryData } from "@/lib/priceEntry";
 
 export const metadata: Metadata = { title: "Enter prices", robots: { index: false } };
 
-// Only price checkers (app owners and helpers) can open this; others get "page not found".
+// Only price checkers (the owner and people they pick) can open this; others get "page not found".
 export default function EnterPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
@@ -25,7 +25,7 @@ export default function EnterPage() {
 
 async function Content() {
   const user = await getCurrentUser();
-  if (!user || !(await isOwner())) notFound();
+  if (!user || !(await canEnterPrices())) notFound();
   const { stores, items, last } = await getEntryData();
   if (!stores.length) return <p className="text-ink-2">No hand-checked stores yet.</p>;
   return <PriceEntry stores={stores} items={items} last={last} />;

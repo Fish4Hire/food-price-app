@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { signOut } from "@/app/auth/actions";
 import { DeleteAccount } from "@/components/DeleteAccount";
 import { HomeAddressForm } from "@/components/HomeAddressForm";
 import { HomeZipForm } from "@/components/HomeZipForm";
-import { getCurrentUser } from "@/lib/auth";
+import { TIER_LABELS, type Access } from "@/lib/access";
+import { getAccess, getCurrentUser } from "@/lib/auth";
 import { getPriceData } from "@/lib/data";
 import { longDay } from "@/lib/format";
 import { getNearbyStores } from "@/lib/kroger";
@@ -27,7 +29,7 @@ export default function AccountPage() {
 async function AccountDetails() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const profile = await getProfile(user.id);
+  const [profile, access] = await Promise.all([getProfile(user.id), getAccess()]);
 
   return (
     <div className="mt-6 space-y-4">
@@ -43,6 +45,8 @@ async function AccountDetails() {
           </div>
         </dl>
       </section>
+
+      <PlanSection access={access} />
 
       <section className="rounded-2xl border border-line bg-surface p-6">
         <h2 className="font-semibold">Where you shop</h2>
@@ -78,6 +82,49 @@ async function AccountDetails() {
 
       <DeleteAccount />
     </div>
+  );
+}
+
+const PLAN_TEXT: Record<Access["tier"], string> = {
+  owner: "You run Cheaper Eats.",
+  admin: "You're a Cheaper Eats admin: you can manage people and enter prices.",
+  trusted: "You have the full Cheaper Eats service for free, courtesy of the owner.",
+  paid: "Thanks for subscribing. You have the full Cheaper Eats service.",
+  free: "Everything on Cheaper Eats is free right now.",
+};
+
+/** The user's group, plus links for admins (People) and price checkers (Enter prices). */
+function PlanSection({ access }: { access: Access }) {
+  return (
+    <section className="rounded-2xl border border-line bg-surface p-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="font-semibold">Your plan</h2>
+        <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">
+          {TIER_LABELS[access.tier]}
+        </span>
+      </div>
+      <p className="mt-1 text-sm text-ink-2">{PLAN_TEXT[access.tier]}</p>
+      {(access.isAdmin || access.entersPrices) && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {access.isAdmin && (
+            <Link
+              href="/admin/people"
+              className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:opacity-90"
+            >
+              Manage people
+            </Link>
+          )}
+          {access.entersPrices && (
+            <Link
+              href="/enter"
+              className="rounded-full border border-line px-4 py-2 text-sm font-medium text-ink-2 hover:border-line-strong hover:text-ink"
+            >
+              Enter prices
+            </Link>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 

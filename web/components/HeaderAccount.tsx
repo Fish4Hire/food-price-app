@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCurrentUser, isOwner } from "@/lib/auth";
+import { canEnterPrices, getCurrentUser } from "@/lib/auth";
 
 const linkClass = "rounded-full px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink";
 
@@ -10,7 +10,7 @@ const linkClass = "rounded-full px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:
 export async function HeaderAccount() {
   const user = await getCurrentUser();
   if (!user) return <SignInLink />;
-  const checker = await isOwner();
+  const checker = await canEnterPrices();
   return (
     <>
       {checker && (
