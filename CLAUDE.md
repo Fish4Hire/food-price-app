@@ -46,4 +46,4 @@ SUPABASE_DB_URL=   # Session pooler connection string; used by run_sql.py to app
 
 ## Working style
 - Build in small steps; get each step running before moving on
-- Explain what each new file does in plain language (the owner is new to coding)
+- Explain what each new file does in plain language, with a short header comment in every script
